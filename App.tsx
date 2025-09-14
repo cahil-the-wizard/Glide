@@ -22,6 +22,11 @@ export default function App() {
     // Check for existing auth session
     const checkAuth = async () => {
       const currentUser = await authService.getCurrentUser();
+      if (currentUser) {
+        // Ensure onboarding flow exists for existing users
+        await authService.ensureOnboardingFlow(currentUser.id);
+        setRefreshTrigger(prev => prev + 1);
+      }
       setUser(currentUser);
       setAuthLoading(false);
     };
@@ -29,7 +34,12 @@ export default function App() {
     checkAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = authService.onAuthStateChange((user) => {
+    const { data: { subscription } } = authService.onAuthStateChange(async (user) => {
+      if (user) {
+        // Ensure onboarding flow exists when user logs in
+        await authService.ensureOnboardingFlow(user.id);
+        setRefreshTrigger(prev => prev + 1);
+      }
       setUser(user);
       setAuthLoading(false);
     });
@@ -128,6 +138,7 @@ export default function App() {
             {/* Home screen - always rendered when not in newFlow */}
             <HomeScreenContent
               onFlowPress={handleNavigateToFlowDetail}
+              refreshTrigger={refreshTrigger}
             />
 
             {/* Flow detail overlay - only when on flowDetail screen */}

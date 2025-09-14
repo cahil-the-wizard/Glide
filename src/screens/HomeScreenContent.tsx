@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Animated } from 'react-native';
 import { Search, Clock, ArrowRight } from 'lucide-react-native';
-
-const flowsData = [
-  { id: 1, title: 'Job Application', step: 'Step 2 of 5: Draft outline', time: '10 min' },
-  { id: 2, title: 'Kitchen Declutter', step: 'Step 2 of 5: Draft outline', time: '15 min' },
-  { id: 3, title: 'Weekly Groceries', step: 'Step 2 of 5: Draft outline', time: '20 min' },
-  { id: 4, title: 'Write Blog Post', step: 'Step 2 of 5: Draft outline', time: '20 min' },
-  { id: 5, title: 'Plan Weekend Trip', step: 'Step 2 of 5: Draft outline', time: '5 min' },
-  { id: 6, title: 'Budget Planning', step: 'Step 2 of 5: Draft outline', time: '15 min' },
-  { id: 7, title: 'Work Opportunity', step: 'Step 2 of 5: Draft outline', time: '25 min' },
-];
+import { Flow } from '../types/database';
+import { databaseService } from '../services/database';
 
 interface HomeScreenContentProps {
   onFlowPress?: (flowId: string) => void;
+  refreshTrigger?: number;
+}
+
+interface FlowWithProgress {
+  id: string;
+  title: string;
+  step: string;
+  time: string;
 }
 
 const FlowItem = ({ flow, index, isHovered, onHover, onLeave, onPress }: {
-  flow: typeof flowsData[0];
+  flow: FlowWithProgress;
   index: number;
   isHovered: boolean;
   onHover: () => void;
@@ -98,9 +98,51 @@ const FlowItem = ({ flow, index, isHovered, onHover, onLeave, onPress }: {
   );
 };
 
-export default function HomeScreenContent({ onFlowPress }: HomeScreenContentProps) {
+export default function HomeScreenContent({ onFlowPress, refreshTrigger }: HomeScreenContentProps) {
   const [searchText, setSearchText] = useState('');
-  const [hoveredFlow, setHoveredFlow] = useState<number | null>(null);
+  const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
+  const [flows, setFlows] = useState<FlowWithProgress[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadFlows();
+  }, [refreshTrigger]);
+
+  const loadFlows = async () => {
+    try {
+      setLoading(true);
+      const flowsData = await databaseService.getFlows();
+
+      // Transform flows to include progress info
+      const flowsWithProgress = await Promise.all(
+        flowsData.map(async (flow) => {
+          try {
+            const stats = await databaseService.getFlowStats(flow.id);
+            const nextStepNumber = stats.completedSteps + 1;
+            return {
+              id: flow.id,
+              title: flow.title,
+              step: `Step ${nextStepNumber} of ${stats.totalSteps}`,
+              time: '5 min' // Default time estimate
+            };
+          } catch (error) {
+            return {
+              id: flow.id,
+              title: flow.title,
+              step: 'Ready to start',
+              time: '5 min'
+            };
+          }
+        })
+      );
+
+      setFlows(flowsWithProgress);
+    } catch (error) {
+      console.error('Error loading flows:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -122,17 +164,27 @@ export default function HomeScreenContent({ onFlowPress }: HomeScreenContentProp
 
         {/* Flows list */}
         <View style={styles.flowsList}>
-          {flowsData.map((flow, index) => (
-            <FlowItem
-              key={flow.id}
-              flow={flow}
-              index={index}
-              isHovered={hoveredFlow === flow.id}
-              onHover={() => setHoveredFlow(flow.id)}
-              onLeave={() => setHoveredFlow(null)}
-              onPress={() => onFlowPress?.(flow.id.toString())}
-            />
-          ))}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading your flows...</Text>
+            </View>
+          ) : flows.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No flows yet. Create your first flow to get started!</Text>
+            </View>
+          ) : (
+            flows.map((flow, index) => (
+              <FlowItem
+                key={flow.id}
+                flow={flow}
+                index={index}
+                isHovered={hoveredFlow === flow.id}
+                onHover={() => setHoveredFlow(flow.id)}
+                onLeave={() => setHoveredFlow(null)}
+                onPress={() => onFlowPress?.(flow.id)}
+              />
+            ))
+          )}
         </View>
       </ScrollView>
     </View>
@@ -245,5 +297,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '400',
     lineHeight: 19.6,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '400',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '400',
+    textAlign: 'center',
   },
 });

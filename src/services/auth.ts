@@ -34,8 +34,32 @@ export interface AuthUser {
 }
 
 export class AuthService {
+  // Check if user needs onboarding flow and create it
+  async ensureOnboardingFlow(userId: string): Promise<void> {
+    try {
+      // Check if user has any flows
+      const { data: flows, error } = await supabase
+        .from('flows')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1);
+
+      if (error) {
+        console.error('Error checking for existing flows:', error);
+        return;
+      }
+
+      // If user has no flows, create onboarding flow
+      if (!flows || flows.length === 0) {
+        await this.createOnboardingFlow(userId);
+      }
+    } catch (error) {
+      console.error('Error ensuring onboarding flow:', error);
+    }
+  }
+
   // Create onboarding flow for new users
-  private async createOnboardingFlow(userId: string): Promise<void> {
+  async createOnboardingFlow(userId: string): Promise<void> {
     try {
       // Create the flow
       const { data: flow, error: flowError } = await supabase
