@@ -8,7 +8,7 @@ interface AuthScreenProps {
 }
 
 export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,10 +46,10 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
         <View style={styles.header}>
           <Logo width={40} color="black" />
           <Text style={styles.title}>
-            {isSignUp ? 'Create your account' : 'Welcome back'}
+            {isSignUp ? 'Glide, tasks without the drag' : 'Welcome back'}
           </Text>
           <Text style={styles.subtitle}>
-            {isSignUp ? 'Start organizing your tasks with AI' : 'Sign in to continue'}
+            {isSignUp ? 'Break down big tasks into simple, guided steps' : 'Sign in to continue'}
           </Text>
         </View>
 
@@ -65,6 +65,8 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
               keyboardType="email-address"
               autoCapitalize="none"
               editable={!loading}
+              onSubmitEditing={handleAuth}
+              returnKeyType="next"
             />
           </View>
 
@@ -78,6 +80,8 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
               onChangeText={setPassword}
               secureTextEntry
               editable={!loading}
+              onSubmitEditing={handleAuth}
+              returnKeyType="done"
             />
           </View>
 
