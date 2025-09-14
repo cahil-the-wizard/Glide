@@ -16,13 +16,14 @@ interface FlowWithProgress {
   time: string;
 }
 
-const FlowItem = ({ flow, index, isHovered, onHover, onLeave, onPress }: {
+const FlowItem = ({ flow, index, isHovered, onHover, onLeave, onPress, totalFlows }: {
   flow: FlowWithProgress;
   index: number;
   isHovered: boolean;
   onHover: () => void;
   onLeave: () => void;
   onPress?: () => void;
+  totalFlows: number;
 }) => {
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(4))[0];
@@ -62,7 +63,7 @@ const FlowItem = ({ flow, index, isHovered, onHover, onLeave, onPress }: {
       style={[
         styles.flowItem,
         index === 0 && styles.firstFlowItem,
-        index === flowsData.length - 1 && styles.lastFlowItem
+        index === totalFlows - 1 && styles.lastFlowItem
       ]}
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
@@ -182,6 +183,7 @@ export default function HomeScreenContent({ onFlowPress, refreshTrigger }: HomeS
                 onHover={() => setHoveredFlow(flow.id)}
                 onLeave={() => setHoveredFlow(null)}
                 onPress={() => onFlowPress?.(flow.id)}
+                totalFlows={flows.length}
               />
             ))
           )}

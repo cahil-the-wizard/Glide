@@ -12,7 +12,8 @@ interface SidebarProps {
   onNewFlowPress?: () => void;
   onSearchPress?: () => void;
   onFlowPress?: (flowId: string) => void;
-  refreshTrigger?: number; // Used to trigger refresh when flows change
+  flows: Flow[];
+  flowsLoading: boolean;
 }
 
 export default function Sidebar({
@@ -21,24 +22,11 @@ export default function Sidebar({
   onNewFlowPress,
   onSearchPress,
   onFlowPress,
-  refreshTrigger
+  flows,
+  flowsLoading
 }: SidebarProps) {
   const [hoveredNavItem, setHoveredNavItem] = useState<string | null>(null);
-  const [flows, setFlows] = useState<Flow[]>([]);
   const [showUserPopover, setShowUserPopover] = useState(false);
-
-  useEffect(() => {
-    loadFlows();
-  }, [refreshTrigger]);
-
-  const loadFlows = async () => {
-    try {
-      const flowsData = await databaseService.getFlows();
-      setFlows(flowsData);
-    } catch (error) {
-      console.error('Error loading flows:', error);
-    }
-  };
 
   const handleLogout = async () => {
     try {

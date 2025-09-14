@@ -7,6 +7,8 @@ import FlowDetailScreenContent from './src/screens/FlowDetailScreenContent';
 import AuthScreen from './src/screens/AuthScreen';
 import Sidebar from './src/components/Sidebar';
 import { authService, AuthUser } from './src/services/auth';
+import { databaseService } from './src/services/database';
+import { Flow } from './src/types/database';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'home' | 'newFlow' | 'flowDetail'>('home');
@@ -14,6 +16,8 @@ export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [flows, setFlows] = useState<Flow[]>([]);
+  const [flowsLoading, setFlowsLoading] = useState(false);
   const slideAnim = useRef(new Animated.Value(32)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [isAnimating, setIsAnimating] = useState(false);
@@ -48,6 +52,27 @@ export default function App() {
       subscription?.unsubscribe();
     };
   }, []);
+
+  // Load flows whenever refresh trigger changes
+  useEffect(() => {
+    if (user) {
+      loadFlows();
+    }
+  }, [refreshTrigger, user]);
+
+  const loadFlows = async () => {
+    if (!user) return;
+
+    try {
+      setFlowsLoading(true);
+      const flowsData = await databaseService.getFlows();
+      setFlows(flowsData);
+    } catch (error) {
+      console.error('Error loading flows:', error);
+    } finally {
+      setFlowsLoading(false);
+    }
+  };
 
   const handleNavigateToNewFlow = () => setCurrentScreen('newFlow');
 
@@ -127,7 +152,8 @@ export default function App() {
         onHomePress={handleNavigateToHome}
         onNewFlowPress={handleNavigateToNewFlow}
         onFlowPress={handleNavigateToFlowDetail}
-        refreshTrigger={refreshTrigger}
+        flows={flows}
+        flowsLoading={flowsLoading}
       />
 
       <View style={styles.mainContainer}>
@@ -138,7 +164,8 @@ export default function App() {
             {/* Home screen - always rendered when not in newFlow */}
             <HomeScreenContent
               onFlowPress={handleNavigateToFlowDetail}
-              refreshTrigger={refreshTrigger}
+              flows={flows}
+              flowsLoading={flowsLoading}
             />
 
             {/* Flow detail overlay - only when on flowDetail screen */}
