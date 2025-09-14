@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
-import { Home, Search, LogOut } from 'lucide-react-native';
+import { Home, Search, LogOut, PanelRightOpen } from 'lucide-react-native';
 import { Logo } from './Logo';
 import { Flow } from '../types/database';
 import { databaseService } from '../services/database';
@@ -13,6 +13,8 @@ interface SidebarProps {
   onFlowPress?: (flowId: string) => void;
   flows: Flow[];
   flowsLoading: boolean;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export default function Sidebar({
@@ -21,7 +23,9 @@ export default function Sidebar({
   onSearchPress,
   onFlowPress,
   flows,
-  flowsLoading
+  flowsLoading,
+  collapsed = false,
+  onToggleCollapse
 }: SidebarProps) {
   const [hoveredNavItem, setHoveredNavItem] = useState<string | null>(null);
   const [showUserPopover, setShowUserPopover] = useState(false);
@@ -37,120 +41,129 @@ export default function Sidebar({
   };
 
   return (
-    <View style={styles.sidebar}>
+    <View style={[styles.sidebar, collapsed && styles.sidebarCollapsed]}>
       <View style={styles.sidebarContent}>
-        {/* Header with logo and settings */}
+        {/* Header with logo and toggle */}
         <View style={styles.sidebarHeader}>
           <View style={styles.logoContainer}>
             <Logo width={32} color="black" />
           </View>
-          <TouchableOpacity style={styles.settingsButton}>
-            <Search size={18} color="#717680" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Navigation */}
-        <View style={styles.navigation}>
           <TouchableOpacity
-            style={[
-              styles.navItem,
-              hoveredNavItem === 'home' && styles.navItemHover,
-              currentScreen === 'home' && styles.navItemActive
-            ]}
-            onMouseEnter={() => setHoveredNavItem('home')}
-            onMouseLeave={() => setHoveredNavItem(null)}
-            onPress={onHomePress}
+            style={styles.toggleButton}
+            onPress={onToggleCollapse}
           >
-            <Home size={18} color="#0A0D12" />
-            <Text style={styles.navText}>Home</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.navItem,
-              hoveredNavItem === 'search' && styles.navItemHover
-            ]}
-            onMouseEnter={() => setHoveredNavItem('search')}
-            onMouseLeave={() => setHoveredNavItem(null)}
-            onPress={onSearchPress}
-          >
-            <Search size={18} color="#0A0D12" />
-            <Text style={styles.navText}>Search flows</Text>
+            <PanelRightOpen size={18} color="#717680" />
           </TouchableOpacity>
         </View>
 
-        {/* Divider */}
-        <View style={styles.divider} />
+        {!collapsed && (
+          <>
+            {/* Navigation */}
+            <View style={styles.navigation}>
+              <TouchableOpacity
+                style={[
+                  styles.navItem,
+                  hoveredNavItem === 'home' && styles.navItemHover,
+                  currentScreen === 'home' && styles.navItemActive
+                ]}
+                onMouseEnter={() => setHoveredNavItem('home')}
+                onMouseLeave={() => setHoveredNavItem(null)}
+                onPress={onHomePress}
+              >
+                <Home size={18} color="#0A0D12" />
+                <Text style={styles.navText}>Home</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.navItem,
+                  hoveredNavItem === 'search' && styles.navItemHover
+                ]}
+                onMouseEnter={() => setHoveredNavItem('search')}
+                onMouseLeave={() => setHoveredNavItem(null)}
+                onPress={onSearchPress}
+              >
+                <Search size={18} color="#0A0D12" />
+                <Text style={styles.navText}>Search flows</Text>
+              </TouchableOpacity>
+            </View>
 
-        {/* Flows section */}
-        <View style={styles.flowsSection}>
-          <Text style={styles.sectionHeader}>Flows</Text>
-          {flows.map((flow) => (
-            <TouchableOpacity
-              key={flow.id}
-              style={[
-                styles.flowNavItem,
-                hoveredNavItem === `flow-${flow.id}` && styles.navItemHover
-              ]}
-              onMouseEnter={() => setHoveredNavItem(`flow-${flow.id}`)}
-              onMouseLeave={() => setHoveredNavItem(null)}
-              onPress={() => onFlowPress?.(flow.id)}
-            >
-              <Text style={styles.flowNavText}>{flow.title}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+            {/* Divider */}
+            <View style={styles.divider} />
+
+            {/* Flows section */}
+            <View style={styles.flowsSection}>
+              <Text style={styles.sectionHeader}>Flows</Text>
+              {flows.map((flow) => (
+                <TouchableOpacity
+                  key={flow.id}
+                  style={[
+                    styles.flowNavItem,
+                    hoveredNavItem === `flow-${flow.id}` && styles.navItemHover
+                  ]}
+                  onMouseEnter={() => setHoveredNavItem(`flow-${flow.id}`)}
+                  onMouseLeave={() => setHoveredNavItem(null)}
+                  onPress={() => onFlowPress?.(flow.id)}
+                >
+                  <Text style={styles.flowNavText}>{flow.title}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
       </View>
 
       {/* User profile */}
-      <View style={styles.userProfile}>
-        <TouchableOpacity
-          style={styles.userButton}
-          onPress={() => setShowUserPopover(true)}
-        >
-          <Image
-            source={{ uri: 'https://placehold.co/34x34' }}
-            style={styles.avatar}
-          />
-          <Text style={styles.userName}>Cahil Sankar</Text>
-        </TouchableOpacity>
-
-        {/* User Popover Modal */}
-        <Modal
-          visible={showUserPopover}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowUserPopover(false)}
-        >
+      {!collapsed && (
+        <View style={styles.userProfile}>
           <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowUserPopover(false)}
+            style={styles.userButton}
+            onPress={() => setShowUserPopover(true)}
           >
-            <View style={styles.popover}>
-              <View style={styles.popoverHeader}>
-                <Image
-                  source={{ uri: 'https://placehold.co/40x40' }}
-                  style={styles.popoverAvatar}
-                />
-                <View>
-                  <Text style={styles.popoverName}>Cahil Sankar</Text>
-                  <Text style={styles.popoverEmail}>cahil@example.com</Text>
-                </View>
-              </View>
-
-              <View style={styles.popoverDivider} />
-
-              <TouchableOpacity
-                style={styles.popoverMenuItem}
-                onPress={handleLogout}
-              >
-                <LogOut size={18} color="#DC2626" />
-                <Text style={styles.popoverMenuText}>Sign out</Text>
-              </TouchableOpacity>
-            </View>
+            <Image
+              source={{ uri: 'https://placehold.co/34x34' }}
+              style={styles.avatar}
+            />
+            <Text style={styles.userName}>Cahil Sankar</Text>
           </TouchableOpacity>
-        </Modal>
-      </View>
+        </View>
+      )}
+
+      {/* User Popover Modal */}
+      <Modal
+        visible={showUserPopover}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowUserPopover(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowUserPopover(false)}
+        >
+          <View style={styles.popover}>
+            <View style={styles.popoverHeader}>
+              <Image
+                source={{ uri: 'https://placehold.co/40x40' }}
+                style={styles.popoverAvatar}
+              />
+              <View>
+                <Text style={styles.popoverName}>Cahil Sankar</Text>
+                <Text style={styles.popoverEmail}>cahil@example.com</Text>
+              </View>
+            </View>
+
+            <View style={styles.popoverDivider} />
+
+            <TouchableOpacity
+              style={styles.popoverMenuItem}
+              onPress={handleLogout}
+            >
+              <LogOut size={18} color="#DC2626" />
+              <Text style={styles.popoverMenuText}>Sign out</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -163,6 +176,9 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     flexDirection: 'column',
     justifyContent: 'space-between',
+  },
+  sidebarCollapsed: {
+    width: 64,
   },
   sidebarContent: {
     flex: 1,
@@ -180,7 +196,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  settingsButton: {
+  toggleButton: {
     padding: 8,
     borderRadius: 38,
     justifyContent: 'center',

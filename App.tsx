@@ -17,6 +17,7 @@ export default function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [flows, setFlows] = useState<Flow[]>([]);
   const [flowsLoading, setFlowsLoading] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const slideAnim = useRef(new Animated.Value(32)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [isAnimating, setIsAnimating] = useState(false);
@@ -132,6 +133,10 @@ export default function App() {
     });
   };
 
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
   // Show auth screen if not authenticated
   if (authLoading) {
     return <View style={styles.container} />; // Loading state
@@ -149,6 +154,8 @@ export default function App() {
         onFlowPress={handleNavigateToFlowDetail}
         flows={flows}
         flowsLoading={flowsLoading}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={handleToggleSidebar}
       />
 
       <View style={styles.mainContainer}>

@@ -293,20 +293,6 @@ export default function HomeScreenContent({
 
         {/* Flows List Section */}
         <View style={styles.flowsSection}>
-          <View style={styles.sectionHeaderContainer}>
-            <Text style={styles.sectionHeader}>Your flows</Text>
-            <View style={styles.searchContainer}>
-              <Search size={18} color="#0A0D12" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search flows"
-                placeholderTextColor="#252B37"
-                value={searchText}
-                onChangeText={setSearchText}
-              />
-            </View>
-          </View>
-
           <View style={styles.flowsList}>
             {flowsLoading ? (
               <View style={styles.loadingContainer}>
