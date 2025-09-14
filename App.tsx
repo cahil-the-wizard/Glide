@@ -26,13 +26,11 @@ export default function App() {
     // Check for existing auth session
     const checkAuth = async () => {
       const currentUser = await authService.getCurrentUser();
-      if (currentUser) {
-        // Ensure onboarding flow exists for existing users
-        await authService.ensureOnboardingFlow(currentUser.id);
-        setRefreshTrigger(prev => prev + 1);
-      }
       setUser(currentUser);
       setAuthLoading(false);
+      if (currentUser) {
+        setRefreshTrigger(prev => prev + 1);
+      }
     };
 
     checkAuth();

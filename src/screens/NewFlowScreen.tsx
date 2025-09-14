@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { PlusIcon, MicIcon, ArrowUpIcon } from '../components/Icons';
 import { Logo } from '../components/Logo';
@@ -16,6 +16,15 @@ export default function NewFlowScreen({ onBackPress, onFlowCreated }: NewFlowScr
   const [isLoading, setIsLoading] = useState(false);
   const [progressMessage, setProgressMessage] = useState('');
   const [error, setError] = useState('');
+  const inputRef = useRef<TextInput>(null);
+
+  // Auto-focus the input when component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSubmit = async () => {
     if (!inputText.trim()) return;
@@ -49,15 +58,18 @@ export default function NewFlowScreen({ onBackPress, onFlowCreated }: NewFlowScr
         <View style={styles.inputContainer}>
           <View style={styles.inputField}>
             <View style={styles.inputRow}>
-              <View style={styles.cursorLine} />
               <TextInput
+                ref={inputRef}
                 style={styles.textInput}
                 placeholder="What's something you're struggling to start?"
                 placeholderTextColor="#A4A7AE"
                 value={inputText}
                 onChangeText={setInputText}
+                onSubmitEditing={handleSubmit}
+                returnKeyType="done"
                 multiline
                 editable={!isLoading}
+                selectionColor="transparent"
               />
             </View>
             <View style={styles.actionButtons}>
@@ -161,13 +173,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-  },
-  cursorLine: {
-    width: 2,
-    height: 16,
-    backgroundColor: '#101828',
-    marginTop: 3,
   },
   textInput: {
     flex: 1,
@@ -178,6 +183,8 @@ const styles = StyleSheet.create({
     minHeight: 22,
     paddingVertical: 0,
     paddingHorizontal: 0,
+    outlineWidth: 0,
+    outlineStyle: 'none',
   },
   actionButtons: {
     flexDirection: 'row',

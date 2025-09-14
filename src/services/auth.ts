@@ -37,19 +37,19 @@ export class AuthService {
   // Check if user needs onboarding flow and create it
   async ensureOnboardingFlow(userId: string): Promise<void> {
     try {
-      // Check if user has any flows
+      // Check if user already has the onboarding flow specifically
       const { data: flows, error } = await supabase
         .from('flows')
-        .select('id')
+        .select('id, title')
         .eq('user_id', userId)
-        .limit(1);
+        .eq('title', ONBOARDING_FLOW.title);
 
       if (error) {
-        console.error('Error checking for existing flows:', error);
+        console.error('Error checking for existing onboarding flow:', error);
         return;
       }
 
-      // If user has no flows, create onboarding flow
+      // If user doesn't have the onboarding flow, create it
       if (!flows || flows.length === 0) {
         await this.createOnboardingFlow(userId);
       }
