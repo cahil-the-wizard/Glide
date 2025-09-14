@@ -208,7 +208,10 @@ export default function FlowDetailScreenContent({
   const completedSteps = steps.filter(step => step.is_completed).length;
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header with back button and actions */}
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
@@ -265,12 +268,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+  },
+  scrollContent: {
     paddingHorizontal: 40,
     paddingTop: 64,
     paddingBottom: 40,
-  },
-  scrollContent: {
-    flex: 1,
   },
   headerActions: {
     width: 600,

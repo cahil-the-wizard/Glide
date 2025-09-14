@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
-import { Home, Search, LogOut, PanelRightOpen } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Modal, Animated } from 'react-native';
+import { Home, Search, LogOut, PanelRightOpen, PanelLeftOpen } from 'lucide-react-native';
 import { Logo } from './Logo';
 import { Flow } from '../types/database';
 import { databaseService } from '../services/database';
@@ -15,6 +15,7 @@ interface SidebarProps {
   flowsLoading: boolean;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  animatedWidth?: Animated.Value;
 }
 
 export default function Sidebar({
@@ -25,10 +26,12 @@ export default function Sidebar({
   flows,
   flowsLoading,
   collapsed = false,
-  onToggleCollapse
+  onToggleCollapse,
+  animatedWidth
 }: SidebarProps) {
   const [hoveredNavItem, setHoveredNavItem] = useState<string | null>(null);
   const [showUserPopover, setShowUserPopover] = useState(false);
+  const [logoHovered, setLogoHovered] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -41,52 +44,72 @@ export default function Sidebar({
   };
 
   return (
-    <View style={[styles.sidebar, collapsed && styles.sidebarCollapsed]}>
+    <Animated.View style={[
+      styles.sidebar,
+      animatedWidth && { width: animatedWidth }
+    ]}>
       <View style={styles.sidebarContent}>
         {/* Header with logo and toggle */}
-        <View style={styles.sidebarHeader}>
-          <View style={styles.logoContainer}>
-            <Logo width={32} color="black" />
-          </View>
+        <View style={collapsed ? styles.sidebarHeaderCollapsed : styles.sidebarHeader}>
+          {collapsed ? (
+            <TouchableOpacity
+              style={styles.logoContainer}
+              onMouseEnter={() => setLogoHovered(true)}
+              onMouseLeave={() => setLogoHovered(false)}
+              onPress={onToggleCollapse}
+            >
+              {logoHovered ? (
+                <PanelLeftOpen size={18} color="#717680" />
+              ) : (
+                <Logo width={32} color="black" />
+              )}
+            </TouchableOpacity>
+          ) : (
+            <>
+              <View style={styles.logoContainer}>
+                <Logo width={32} color="black" />
+              </View>
+              <TouchableOpacity
+                style={styles.toggleButton}
+                onPress={onToggleCollapse}
+              >
+                <PanelRightOpen size={18} color="#717680" />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        {/* Navigation - always visible */}
+        <View style={styles.navigation}>
           <TouchableOpacity
-            style={styles.toggleButton}
-            onPress={onToggleCollapse}
+            style={[
+              collapsed ? styles.navItemCollapsed : styles.navItem,
+              hoveredNavItem === 'home' && styles.navItemHover,
+              currentScreen === 'home' && styles.navItemActive
+            ]}
+            onMouseEnter={() => setHoveredNavItem('home')}
+            onMouseLeave={() => setHoveredNavItem(null)}
+            onPress={onHomePress}
           >
-            <PanelRightOpen size={18} color="#717680" />
+            <Home size={18} color="#0A0D12" />
+            {!collapsed && <Text style={styles.navText}>Home</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              collapsed ? styles.navItemCollapsed : styles.navItem,
+              hoveredNavItem === 'search' && styles.navItemHover
+            ]}
+            onMouseEnter={() => setHoveredNavItem('search')}
+            onMouseLeave={() => setHoveredNavItem(null)}
+            onPress={onSearchPress}
+          >
+            <Search size={18} color="#0A0D12" />
+            {!collapsed && <Text style={styles.navText}>Search flows</Text>}
           </TouchableOpacity>
         </View>
 
         {!collapsed && (
           <>
-            {/* Navigation */}
-            <View style={styles.navigation}>
-              <TouchableOpacity
-                style={[
-                  styles.navItem,
-                  hoveredNavItem === 'home' && styles.navItemHover,
-                  currentScreen === 'home' && styles.navItemActive
-                ]}
-                onMouseEnter={() => setHoveredNavItem('home')}
-                onMouseLeave={() => setHoveredNavItem(null)}
-                onPress={onHomePress}
-              >
-                <Home size={18} color="#0A0D12" />
-                <Text style={styles.navText}>Home</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.navItem,
-                  hoveredNavItem === 'search' && styles.navItemHover
-                ]}
-                onMouseEnter={() => setHoveredNavItem('search')}
-                onMouseLeave={() => setHoveredNavItem(null)}
-                onPress={onSearchPress}
-              >
-                <Search size={18} color="#0A0D12" />
-                <Text style={styles.navText}>Search flows</Text>
-              </TouchableOpacity>
-            </View>
-
             {/* Divider */}
             <View style={styles.divider} />
 
@@ -112,21 +135,19 @@ export default function Sidebar({
         )}
       </View>
 
-      {/* User profile */}
-      {!collapsed && (
-        <View style={styles.userProfile}>
-          <TouchableOpacity
-            style={styles.userButton}
-            onPress={() => setShowUserPopover(true)}
-          >
-            <Image
-              source={{ uri: 'https://placehold.co/34x34' }}
-              style={styles.avatar}
-            />
-            <Text style={styles.userName}>Cahil Sankar</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* User profile - always visible */}
+      <View style={styles.userProfile}>
+        <TouchableOpacity
+          style={collapsed ? styles.userButtonCollapsed : styles.userButton}
+          onPress={() => setShowUserPopover(true)}
+        >
+          <Image
+            source={{ uri: 'https://placehold.co/34x34' }}
+            style={styles.avatar}
+          />
+          {!collapsed && <Text style={styles.userName}>Cahil Sankar</Text>}
+        </TouchableOpacity>
+      </View>
 
       {/* User Popover Modal */}
       <Modal
@@ -164,21 +185,17 @@ export default function Sidebar({
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: 260,
     backgroundColor: '#F5F5F5',
     paddingHorizontal: 8,
     paddingVertical: 20,
     flexDirection: 'column',
     justifyContent: 'space-between',
-  },
-  sidebarCollapsed: {
-    width: 64,
   },
   sidebarContent: {
     flex: 1,
@@ -187,6 +204,12 @@ const styles = StyleSheet.create({
   sidebarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  sidebarHeaderCollapsed: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 12,
   },
@@ -213,6 +236,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 38,
   },
+  navItemCollapsed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 38,
+    width: 42,
+    height: 42,
+  },
   navItemHover: {
     backgroundColor: '#E9EAEB',
   },
@@ -221,9 +254,9 @@ const styles = StyleSheet.create({
   },
   navText: {
     color: '#0A0D12',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
-    lineHeight: 22.4,
+    lineHeight: 19.6,
   },
   divider: {
     height: 1,
@@ -248,9 +281,9 @@ const styles = StyleSheet.create({
   },
   flowNavText: {
     color: '#0A0D12',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
-    lineHeight: 22.4,
+    lineHeight: 19.6,
   },
   userProfile: {
     paddingHorizontal: 8,
@@ -259,6 +292,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    padding: 8,
+    borderRadius: 8,
+  },
+  userButtonCollapsed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 8,
     borderRadius: 8,
   },

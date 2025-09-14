@@ -18,6 +18,7 @@ export default function App() {
   const [flows, setFlows] = useState<Flow[]>([]);
   const [flowsLoading, setFlowsLoading] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarWidthAnim = useRef(new Animated.Value(260)).current;
   const slideAnim = useRef(new Animated.Value(32)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [isAnimating, setIsAnimating] = useState(false);
@@ -134,6 +135,15 @@ export default function App() {
   };
 
   const handleToggleSidebar = () => {
+    const toValue = sidebarCollapsed ? 260 : 64;
+
+    Animated.timing(sidebarWidthAnim, {
+      toValue,
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
@@ -156,6 +166,7 @@ export default function App() {
         flowsLoading={flowsLoading}
         collapsed={sidebarCollapsed}
         onToggleCollapse={handleToggleSidebar}
+        animatedWidth={sidebarWidthAnim}
       />
 
       <View style={styles.mainContainer}>

@@ -517,9 +517,9 @@ const styles = StyleSheet.create({
   },
   flowTitle: {
     color: 'black',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '400',
-    lineHeight: 19.6,
+    lineHeight: 22.4,
   },
   flowMeta: {
     flexDirection: 'row',
