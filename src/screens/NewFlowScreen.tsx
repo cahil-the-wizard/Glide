@@ -65,8 +65,12 @@ export default function NewFlowScreen({ onBackPress, onFlowCreated }: NewFlowScr
                 placeholderTextColor="#A4A7AE"
                 value={inputText}
                 onChangeText={setInputText}
-                onSubmitEditing={handleSubmit}
-                returnKeyType="done"
+                onKeyPress={(e) => {
+                  if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
                 multiline
                 editable={!isLoading}
                 selectionColor="transparent"
