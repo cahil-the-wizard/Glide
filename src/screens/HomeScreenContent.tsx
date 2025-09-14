@@ -99,15 +99,43 @@ const FlowItem = ({ flow, index, isHovered, onHover, onLeave, onPress, totalFlow
   );
 };
 
+const getTimeBasedGreeting = (): string => {
+  const hour = new Date().getHours();
+
+  if (hour >= 5 && hour < 12) {
+    return "Glide into your day";
+  } else if (hour >= 12 && hour < 17) {
+    return "Glide past the midday slump";
+  } else if (hour >= 17 && hour < 21) {
+    return "Glide toward tomorrow";
+  } else {
+    return "Glide into calm";
+  }
+};
+
 export default function HomeScreenContent({ onFlowPress, refreshTrigger }: HomeScreenContentProps) {
   const [searchText, setSearchText] = useState('');
   const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
   const [flows, setFlows] = useState<FlowWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [greeting, setGreeting] = useState(getTimeBasedGreeting());
 
   useEffect(() => {
     loadFlows();
   }, [refreshTrigger]);
+
+  // Update greeting every minute to catch time period changes
+  useEffect(() => {
+    const updateGreeting = () => {
+      setGreeting(getTimeBasedGreeting());
+    };
+
+    // Update immediately and then every minute
+    updateGreeting();
+    const interval = setInterval(updateGreeting, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const loadFlows = async () => {
     try {
@@ -150,7 +178,7 @@ export default function HomeScreenContent({ onFlowPress, refreshTrigger }: HomeS
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header section */}
         <View style={styles.headerSection}>
-          <Text style={styles.mainTitle}>Glide through your morning</Text>
+          <Text style={styles.mainTitle}>{greeting}</Text>
           <View style={styles.searchContainer}>
             <Search size={18} color="#0A0D12" />
             <TextInput

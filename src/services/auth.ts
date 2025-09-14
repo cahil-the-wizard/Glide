@@ -8,22 +8,22 @@ const ONBOARDING_FLOW = {
       stepNumber: 1,
       title: "Explore This Flow",
       timeEstimate: "2 min",
-      description: "• **Tap each step** to see how flows work\n• Notice the time estimates and tips\n• 💡 Each flow breaks big tasks into small wins",
-      completionCue: "✅ You've explored the flow interface"
+      description: "👉 Tap through the steps to see how a flow unfolds\n👀 Notice the quick time estimates and simple tips\n💡 Big tasks shrink into small, doable wins here",
+      completionCue: "You’ve seen how tasks shrink into small wins"
     },
     {
       stepNumber: 2,
       title: "Try Checking Off",
       timeEstimate: "30 sec",
-      description: "• **Tap the checkbox** next to this step\n• Watch it turn green and feel that satisfaction\n• ✍️ This is your dopamine hit for progress!",
-      completionCue: "✅ You've experienced the satisfaction of completion"
+      description: "🟢 Tap the checkbox next to this step\n🌟 Watch it turn green\n🧠 Accoumplishing small wins builds momentum",
+      completionCue: "Notice how good it feels to move something forward"
     },
     {
       stepNumber: 3,
       title: "Create Your First Flow",
       timeEstimate: "3 min",
-      description: "• **Tap the + button** to start a new flow\n• Enter something you've been putting off\n• 🔗 Let AI break it down for you\n• 💡 Start with something small and achievable",
-      completionCue: "✅ You've created your first custom flow"
+      description: "➕ Tap the "New Flow" button to start fresh\n✍️ Add something you’ve been putting off\n✨ Let Glide + AI break it into easy steps for you\n🌱 See how breaking down your task into small chunks helps you find your flow",
+      completionCue: "You're Gliding through your tasks, without the drag"
     }
   ]
 };
