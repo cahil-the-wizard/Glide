@@ -221,7 +221,10 @@ export default function HomeScreenContent({
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header with Logo */}
         <View style={styles.header}>
           <Logo />
@@ -328,12 +331,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+  },
+  scrollContent: {
     paddingHorizontal: 40,
     paddingTop: 64,
     paddingBottom: 40,
-  },
-  scrollContent: {
-    flex: 1,
   },
   header: {
     width: Math.min(680, screenWidth - 80),
@@ -515,9 +517,9 @@ const styles = StyleSheet.create({
   },
   flowTitle: {
     color: 'black',
-    fontSize: 16,
-    fontWeight: '500',
-    lineHeight: 22.4,
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 19.6,
   },
   flowMeta: {
     flexDirection: 'row',
