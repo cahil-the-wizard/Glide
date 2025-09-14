@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
-import { Home, Plus, Search, LogOut } from 'lucide-react-native';
+import { Home, Search, LogOut } from 'lucide-react-native';
 import { Logo } from './Logo';
 import { Flow } from '../types/database';
 import { databaseService } from '../services/database';
@@ -9,7 +9,6 @@ import { authService } from '../services/auth';
 interface SidebarProps {
   currentScreen?: 'home' | 'newFlow' | 'flowDetail';
   onHomePress?: () => void;
-  onNewFlowPress?: () => void;
   onSearchPress?: () => void;
   onFlowPress?: (flowId: string) => void;
   flows: Flow[];
@@ -19,7 +18,6 @@ interface SidebarProps {
 export default function Sidebar({
   currentScreen = 'home',
   onHomePress,
-  onNewFlowPress,
   onSearchPress,
   onFlowPress,
   flows,
@@ -65,19 +63,6 @@ export default function Sidebar({
           >
             <Home size={18} color="#0A0D12" />
             <Text style={styles.navText}>Home</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.navItem,
-              hoveredNavItem === 'newflow' && styles.navItemHover,
-              currentScreen === 'newFlow' && styles.navItemActive
-            ]}
-            onPress={onNewFlowPress}
-            onMouseEnter={() => setHoveredNavItem('newflow')}
-            onMouseLeave={() => setHoveredNavItem(null)}
-          >
-            <Plus size={18} color="#0A0D12" />
-            <Text style={styles.navText}>New flow</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[

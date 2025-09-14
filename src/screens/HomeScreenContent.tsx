@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Animated } from 'react-native';
-import { Search, Clock, ArrowRight } from 'lucide-react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Animated, ActivityIndicator, Dimensions } from 'react-native';
+import { Search, Clock, ArrowRight, Plus, Mic } from 'lucide-react-native';
 import { Flow } from '../types/database';
 import { databaseService } from '../services/database';
+import { Logo } from '../components/Logo';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 interface HomeScreenContentProps {
   onFlowPress?: (flowId: string) => void;
-  refreshTrigger?: number;
+  onFlowCreated?: (flowId: string) => void;
+  flows: Flow[];
+  flowsLoading: boolean;
 }
 
 interface FlowWithProgress {
@@ -113,16 +118,31 @@ const getTimeBasedGreeting = (): string => {
   }
 };
 
-export default function HomeScreenContent({ onFlowPress, refreshTrigger }: HomeScreenContentProps) {
+export default function HomeScreenContent({
+  onFlowPress,
+  onFlowCreated,
+  flows: rawFlows,
+  flowsLoading
+}: HomeScreenContentProps) {
   const [searchText, setSearchText] = useState('');
   const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
   const [flows, setFlows] = useState<FlowWithProgress[]>([]);
-  const [loading, setLoading] = useState(true);
   const [greeting, setGreeting] = useState(getTimeBasedGreeting());
 
+  // New flow input states
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [error, setError] = useState('');
+  const inputRef = useRef<TextInput>(null);
+
+  // Auto-focus the input when component mounts
   useEffect(() => {
-    loadFlows();
-  }, [refreshTrigger]);
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Update greeting every minute to catch time period changes
   useEffect(() => {
@@ -137,84 +157,181 @@ export default function HomeScreenContent({ onFlowPress, refreshTrigger }: HomeS
     return () => clearInterval(interval);
   }, []);
 
-  const loadFlows = async () => {
-    try {
-      setLoading(true);
-      const flowsData = await databaseService.getFlows();
+  // Transform flows when rawFlows changes
+  useEffect(() => {
+    const loadFlowsWithProgress = async () => {
+      if (!rawFlows.length) {
+        setFlows([]);
+        return;
+      }
 
-      // Transform flows to include progress info
-      const flowsWithProgress = await Promise.all(
-        flowsData.map(async (flow) => {
-          try {
-            const stats = await databaseService.getFlowStats(flow.id);
-            const nextStepNumber = stats.completedSteps + 1;
-            return {
-              id: flow.id,
-              title: flow.title,
-              step: `Step ${nextStepNumber} of ${stats.totalSteps}`,
-              time: '5 min' // Default time estimate
-            };
-          } catch (error) {
-            return {
-              id: flow.id,
-              title: flow.title,
-              step: 'Ready to start',
-              time: '5 min'
-            };
-          }
-        })
+      try {
+        const flowsWithProgress = await Promise.all(
+          rawFlows.map(async (flow) => {
+            try {
+              const stats = await databaseService.getFlowStats(flow.id);
+              const nextStepNumber = stats.completedSteps + 1;
+              return {
+                id: flow.id,
+                title: flow.title,
+                step: `Step ${nextStepNumber} of ${stats.totalSteps}`,
+                time: '5 min' // Default time estimate
+              };
+            } catch (error) {
+              return {
+                id: flow.id,
+                title: flow.title,
+                step: 'Ready to start',
+                time: '5 min'
+              };
+            }
+          })
+        );
+
+        setFlows(flowsWithProgress);
+      } catch (error) {
+        console.error('Error loading flow progress:', error);
+      }
+    };
+
+    loadFlowsWithProgress();
+  }, [rawFlows]);
+
+  const handleSubmit = async () => {
+    if (!inputText.trim()) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const flow = await databaseService.createFlowFromTask(
+        inputText.trim(),
+        (message: string) => setProgressMessage(message)
       );
 
-      setFlows(flowsWithProgress);
-    } catch (error) {
-      console.error('Error loading flows:', error);
+      setInputText('');
+      onFlowCreated?.(flow.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create flow');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+      setProgressMessage('');
     }
   };
 
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header section */}
-        <View style={styles.headerSection}>
-          <Text style={styles.mainTitle}>{greeting}</Text>
-          <View style={styles.searchContainer}>
-            <Search size={18} color="#0A0D12" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search"
-              placeholderTextColor="#252B37"
-              value={searchText}
-              onChangeText={setSearchText}
-            />
-          </View>
+        {/* Header with Logo */}
+        <View style={styles.header}>
+          <Logo />
+          <Text style={styles.title}>Every flow starts with a single step</Text>
         </View>
 
-        {/* Flows list */}
-        <View style={styles.flowsList}>
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading your flows...</Text>
-            </View>
-          ) : flows.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No flows yet. Create your first flow to get started!</Text>
-            </View>
-          ) : (
-            flows.map((flow, index) => (
-              <FlowItem
-                key={flow.id}
-                flow={flow}
-                index={index}
-                isHovered={hoveredFlow === flow.id}
-                onHover={() => setHoveredFlow(flow.id)}
-                onLeave={() => setHoveredFlow(null)}
-                onPress={() => onFlowPress?.(flow.id)}
-                totalFlows={flows.length}
+        {/* New Flow Input */}
+        <View style={styles.inputContainer}>
+          <View style={styles.inputField}>
+            <View style={styles.inputRow}>
+              <TextInput
+                ref={inputRef}
+                style={styles.textInput}
+                placeholder="What's something you're struggling to start?"
+                placeholderTextColor="#A4A7AE"
+                value={inputText}
+                onChangeText={setInputText}
+                onKeyPress={(e) => {
+                  if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                multiline
+                editable={!isLoading}
+                selectionColor="transparent"
               />
-            ))
+            </View>
+            <View style={styles.actionButtons}>
+              <View style={styles.leftButtons}>
+                <TouchableOpacity style={styles.button}>
+                  <Plus size={18} color="#717680" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.rightButtons}>
+                <TouchableOpacity style={styles.button}>
+                  <Mic size={18} color="#717680" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.primaryButton]}
+                  onPress={handleSubmit}
+                  disabled={!inputText.trim() || isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <ArrowRight size={18} color="white" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Loading and Progress Messages */}
+          {isLoading && progressMessage && (
+            <View style={styles.progressContainer}>
+              <ActivityIndicator size="small" color="#0A0D12" />
+              <Text style={styles.progressText}>{progressMessage}</Text>
+            </View>
           )}
+
+          {/* Error Message */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Flows List Section */}
+        <View style={styles.flowsSection}>
+          <View style={styles.sectionHeaderContainer}>
+            <Text style={styles.sectionHeader}>Your flows</Text>
+            <View style={styles.searchContainer}>
+              <Search size={18} color="#0A0D12" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search flows"
+                placeholderTextColor="#252B37"
+                value={searchText}
+                onChangeText={setSearchText}
+              />
+            </View>
+          </View>
+
+          <View style={styles.flowsList}>
+            {flowsLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#0A0D12" />
+                <Text style={styles.loadingText}>Loading your flows...</Text>
+              </View>
+            ) : flows.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No flows yet. Create your first flow above!</Text>
+              </View>
+            ) : (
+              flows.map((flow, index) => (
+                <FlowItem
+                  key={flow.id}
+                  flow={flow}
+                  index={index}
+                  isHovered={hoveredFlow === flow.id}
+                  onHover={() => setHoveredFlow(flow.id)}
+                  onLeave={() => setHoveredFlow(null)}
+                  onPress={() => onFlowPress?.(flow.id)}
+                  totalFlows={flows.length}
+                />
+              ))
+            )}
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -232,23 +349,138 @@ const styles = StyleSheet.create({
   scrollContent: {
     flex: 1,
   },
-  headerSection: {
-    width: 600,
+  header: {
+    width: Math.min(680, screenWidth - 80),
     alignSelf: 'center',
-    paddingTop: 32,
-    paddingBottom: 64,
+    flexDirection: 'column',
     alignItems: 'center',
     gap: 28,
+    paddingBottom: 32,
   },
-  mainTitle: {
+  title: {
+    textAlign: 'center',
     color: 'black',
     fontSize: 32,
     fontWeight: '400',
     lineHeight: 38.4,
+    maxWidth: 600,
+  },
+  inputContainer: {
+    width: Math.min(680, screenWidth - 80),
+    alignSelf: 'center',
+    backgroundColor: 'white',
+    shadowColor: '#101828',
+    shadowOffset: {
+      width: 0,
+      height: 16,
+    },
+    shadowOpacity: 0.02,
+    shadowRadius: 6,
+    elevation: 3,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#D9D9D9',
+    overflow: 'hidden',
+    marginBottom: 64,
+  },
+  inputField: {
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: 'white',
+    flexDirection: 'column',
+    gap: 16,
+  },
+  inputRow: {
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '400',
+    lineHeight: 22.4,
+    color: 'black',
+    minHeight: 22,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    outlineWidth: 0,
+    outlineStyle: 'none',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  leftButtons: {
+    width: 179.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  rightButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  button: {
+    padding: 12,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 42,
+    height: 42,
+  },
+  primaryButton: {
+    backgroundColor: '#0A0D12',
+    borderWidth: 1,
+    borderColor: '#2C2C2C',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '400',
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    padding: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#DC2626',
     textAlign: 'center',
   },
+  flowsSection: {
+    width: Math.min(680, screenWidth - 80),
+    alignSelf: 'center',
+  },
+  sectionHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 24,
+  },
+  sectionHeader: {
+    color: 'black',
+    fontSize: 24,
+    fontWeight: '600',
+    lineHeight: 28.8,
+  },
   searchContainer: {
-    width: '100%',
+    minWidth: 300,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -265,8 +497,7 @@ const styles = StyleSheet.create({
     lineHeight: 22.4,
   },
   flowsList: {
-    width: 600,
-    alignSelf: 'center',
+    width: '100%',
   },
   flowItem: {
     flexDirection: 'row',

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Animated, Easing } from 'react-native';
-import NewFlowScreen from './src/screens/NewFlowScreen';
 import HomeScreenContent from './src/screens/HomeScreenContent';
 import FlowDetailScreenContent from './src/screens/FlowDetailScreenContent';
 import AuthScreen from './src/screens/AuthScreen';
@@ -11,7 +10,7 @@ import { databaseService } from './src/services/database';
 import { Flow } from './src/types/database';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'newFlow' | 'flowDetail'>('home');
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'flowDetail'>('home');
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -72,7 +71,6 @@ export default function App() {
     }
   };
 
-  const handleNavigateToNewFlow = () => setCurrentScreen('newFlow');
 
   const handleFlowCreated = (flowId: string) => {
     // Trigger refresh of flows list
@@ -148,45 +146,39 @@ export default function App() {
       <Sidebar
         currentScreen={currentScreen}
         onHomePress={handleNavigateToHome}
-        onNewFlowPress={handleNavigateToNewFlow}
         onFlowPress={handleNavigateToFlowDetail}
         flows={flows}
         flowsLoading={flowsLoading}
       />
 
       <View style={styles.mainContainer}>
-        {currentScreen === 'newFlow' ? (
-          <NewFlowScreen onBackPress={handleNavigateToHome} onFlowCreated={handleFlowCreated} />
-        ) : (
-          <>
-            {/* Home screen - always rendered when not in newFlow */}
-            <HomeScreenContent
-              onFlowPress={handleNavigateToFlowDetail}
-              flows={flows}
-              flowsLoading={flowsLoading}
-            />
+        {/* Home screen - always rendered */}
+        <HomeScreenContent
+          onFlowPress={handleNavigateToFlowDetail}
+          onFlowCreated={handleFlowCreated}
+          flows={flows}
+          flowsLoading={flowsLoading}
+        />
 
-            {/* Flow detail overlay - only when on flowDetail screen */}
-            {(currentScreen === 'flowDetail' || isAnimating) && selectedFlowId && (
-              <Animated.View
-                style={[
-                  styles.animatedContainer,
-                  styles.overlay,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{
-                      translateX: slideAnim
-                    }]
-                  }
-                ]}
-              >
-                <FlowDetailScreenContent
-                  flowId={selectedFlowId}
-                  onBackPress={handleNavigateToHome}
-                />
-              </Animated.View>
-            )}
-          </>
+        {/* Flow detail overlay - only when on flowDetail screen */}
+        {(currentScreen === 'flowDetail' || isAnimating) && selectedFlowId && (
+          <Animated.View
+            style={[
+              styles.animatedContainer,
+              styles.overlay,
+              {
+                opacity: fadeAnim,
+                transform: [{
+                  translateX: slideAnim
+                }]
+              }
+            ]}
+          >
+            <FlowDetailScreenContent
+              flowId={selectedFlowId}
+              onBackPress={handleNavigateToHome}
+            />
+          </Animated.View>
         )}
       </View>
 
