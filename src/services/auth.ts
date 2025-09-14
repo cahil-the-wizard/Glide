@@ -22,7 +22,7 @@ const ONBOARDING_FLOW = {
       stepNumber: 3,
       title: "Create Your First Flow",
       timeEstimate: "3 min",
-      description: "➕ Tap the "New Flow" button to start fresh\n✍️ Add something you’ve been putting off\n✨ Let Glide + AI break it into easy steps for you\n🌱 See how breaking down your task into small chunks helps you find your flow",
+      description: "➕ Tap the \"New Flow\" button to start fresh\n✍️ Add something you've been putting off\n✨ Let Glide + AI break it into easy steps for you\n🌱 See how breaking down your task into small chunks helps you find your flow",
       completionCue: "You're Gliding through your tasks, without the drag"
     }
   ]
