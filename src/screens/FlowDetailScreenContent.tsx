@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Activity
 import { ArrowLeft, Copy, MoreHorizontal, Check, Split } from 'lucide-react-native';
 import { Flow, Step } from '../types/database';
 import { databaseService } from '../services/database';
+import { soundService } from '../services/sound';
 
 interface FlowDetailScreenContentProps {
   flowId: string;
@@ -92,7 +93,16 @@ export default function FlowDetailScreenContent({
 
   useEffect(() => {
     loadFlowData();
+    loadSounds();
+
+    return () => {
+      soundService.unloadSounds();
+    };
   }, [flowId]);
+
+  const loadSounds = async () => {
+    await soundService.loadSounds();
+  };
 
   const loadFlowData = async () => {
     try {
@@ -110,6 +120,11 @@ export default function FlowDetailScreenContent({
   const handleToggleComplete = async (stepId: string, isCompleted: boolean) => {
     try {
       await databaseService.toggleStepCompletion(stepId, isCompleted);
+
+      // Play sound when completing a step (not when unchecking)
+      if (isCompleted) {
+        await soundService.playStepCompleteSound();
+      }
 
       // Update local state
       setSteps(prevSteps =>
