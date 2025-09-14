@@ -1,6 +1,6 @@
 import { supabase } from '../config/supabase';
 import { Flow, Step, FlowInsert, StepInsert } from '../types/database';
-import { ParsedFlow, geminiService } from './gemini';
+import { ParsedFlow, ParsedStep, geminiService } from './gemini';
 
 export class DatabaseService {
   // Create a new flow with steps from AI breakdown
@@ -171,6 +171,103 @@ export class DatabaseService {
       completedSteps,
       completionPercentage
     };
+  }
+
+  // Split a step into two smaller steps
+  async splitStep(stepId: string, onProgress?: (message: string) => void): Promise<Step[]> {
+    try {
+      onProgress?.('Getting step details...');
+
+      // Get the step to split
+      const { data: step, error: stepError } = await supabase
+        .from('steps')
+        .select('*')
+        .eq('id', stepId)
+        .single();
+
+      if (stepError || !step) {
+        throw new Error(stepError?.message || 'Step not found');
+      }
+
+      onProgress?.('Breaking down step...');
+
+      // Use AI to split the step
+      const splitSteps = await geminiService.splitStep(
+        step.title,
+        step.description,
+        step.time_estimate
+      );
+
+      onProgress?.('Creating new steps...');
+
+      // Get all steps for this flow to determine proper step numbering
+      const { data: allSteps, error: allStepsError } = await supabase
+        .from('steps')
+        .select('step_number')
+        .eq('flow_id', step.flow_id)
+        .order('step_number');
+
+      if (allStepsError) {
+        throw new Error(allStepsError.message);
+      }
+
+      // Update step numbers for steps after the current one
+      const currentStepNumber = step.step_number;
+      const stepsToUpdate = allSteps?.filter(s => s.step_number > currentStepNumber) || [];
+
+      for (let i = 0; i < stepsToUpdate.length; i++) {
+        const stepToUpdate = stepsToUpdate[i];
+        await supabase
+          .from('steps')
+          .update({ step_number: stepToUpdate.step_number + 1 })
+          .eq('flow_id', step.flow_id)
+          .eq('step_number', stepToUpdate.step_number);
+      }
+
+      // Replace the original step with the first split step
+      const { data: firstStep, error: firstStepError } = await supabase
+        .from('steps')
+        .update({
+          title: splitSteps[0].title,
+          time_estimate: splitSteps[0].timeEstimate,
+          description: splitSteps[0].description,
+          completion_cue: splitSteps[0].completionCue,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', stepId)
+        .select()
+        .single();
+
+      if (firstStepError || !firstStep) {
+        throw new Error(firstStepError?.message || 'Failed to update first step');
+      }
+
+      // Insert the second split step
+      const { data: secondStep, error: secondStepError } = await supabase
+        .from('steps')
+        .insert({
+          flow_id: step.flow_id,
+          step_number: currentStepNumber + 1,
+          title: splitSteps[1].title,
+          time_estimate: splitSteps[1].timeEstimate,
+          description: splitSteps[1].description,
+          completion_cue: splitSteps[1].completionCue,
+          is_completed: false
+        })
+        .select()
+        .single();
+
+      if (secondStepError || !secondStep) {
+        throw new Error(secondStepError?.message || 'Failed to create second step');
+      }
+
+      onProgress?.('Split completed!');
+
+      return [firstStep, secondStep];
+    } catch (error) {
+      console.error('Error splitting step:', error);
+      throw error;
+    }
   }
 }
 

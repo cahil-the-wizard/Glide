@@ -10,10 +10,12 @@ interface FlowDetailScreenContentProps {
   onBackPress?: () => void;
 }
 
-const StepItem = ({ step, isLast, onToggleComplete }: {
+const StepItem = ({ step, isLast, onToggleComplete, onSplitStep, splitLoading }: {
   step: Step;
   isLast: boolean;
   onToggleComplete?: (stepId: string, isCompleted: boolean) => void;
+  onSplitStep?: (stepId: string) => void;
+  splitLoading?: string | null;
 }) => {
   const getStepIcon = () => {
     if (step.is_completed) {
@@ -71,6 +73,26 @@ const StepItem = ({ step, isLast, onToggleComplete }: {
                 {step.completion_cue && (
                   <Text style={styles.stepMeta}>✅ {step.completion_cue}</Text>
                 )}
+
+                <View style={styles.splitButtonContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.splitButton,
+                      splitLoading === step.id && styles.splitButtonDisabled
+                    ]}
+                    onPress={() => onSplitStep?.(step.id)}
+                    disabled={splitLoading === step.id}
+                  >
+                    {splitLoading === step.id ? (
+                      <ActivityIndicator size="small" color="#0A0D12" />
+                    ) : (
+                      <Split size={18} color="#0A0D12" />
+                    )}
+                    <Text style={styles.splitButtonText}>
+                      {splitLoading === step.id ? 'Splitting...' : 'Split'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           </View>
@@ -90,6 +112,8 @@ export default function FlowDetailScreenContent({
   const [steps, setSteps] = useState<Step[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [splitLoading, setSplitLoading] = useState<string | null>(null);
+  const [splitMessage, setSplitMessage] = useState<string>('');
 
   useEffect(() => {
     loadFlowData();
@@ -134,6 +158,29 @@ export default function FlowDetailScreenContent({
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update step');
+    }
+  };
+
+  const handleSplitStep = async (stepId: string) => {
+    try {
+      setSplitLoading(stepId);
+      setSplitMessage('');
+      setError('');
+
+      await databaseService.splitStep(
+        stepId,
+        (message: string) => setSplitMessage(message)
+      );
+
+      // Reload flow data to get the updated steps
+      await loadFlowData();
+
+      setSplitMessage('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to split step');
+    } finally {
+      setSplitLoading(null);
+      setSplitMessage('');
     }
   };
 
@@ -196,9 +243,19 @@ export default function FlowDetailScreenContent({
               step={step}
               isLast={index === steps.length - 1}
               onToggleComplete={handleToggleComplete}
+              onSplitStep={handleSplitStep}
+              splitLoading={splitLoading}
             />
           ))}
         </View>
+
+        {/* Split loading message */}
+        {splitLoading && splitMessage && (
+          <View style={styles.progressContainer}>
+            <ActivityIndicator size="small" color="#0A0D12" />
+            <Text style={styles.progressText}>{splitMessage}</Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -368,6 +425,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '400',
     lineHeight: 22.4,
+  },
+  splitButtonDisabled: {
+    opacity: 0.6,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '400',
   },
   stepDivider: {
     height: 1,

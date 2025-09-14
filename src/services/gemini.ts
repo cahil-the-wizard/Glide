@@ -77,6 +77,46 @@ export interface ParsedFlow {
 export class GeminiService {
   private model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
+  async splitStep(stepTitle: string, stepDescription: string, timeEstimate: string): Promise<ParsedStep[]> {
+    try {
+      const prompt = `Break down this single step into 2 smaller, more manageable sub-steps. Keep the same overall goal but make each sub-step more specific and actionable.
+
+Original Step:
+Title: ${stepTitle}
+Description: ${stepDescription}
+Time Estimate: ${timeEstimate}
+
+Instructions:
+- Create exactly 2 sub-steps
+- Each sub-step should be simpler and more specific
+- Total time should roughly equal the original step
+- Use emoji-led format (no bullet points, no markdown)
+- Each line should start with a relevant emoji
+
+Format each sub-step like this:
+Step 1: [Specific Action Title] (⏳ time estimate)
+📋 First action line with emoji
+💡 Second helpful line with emoji
+Completion cue: [short completion phrase]
+
+Step 2: [Specific Action Title] (⏳ time estimate)
+📄 First action line with emoji
+✅ Second helpful line with emoji
+Completion cue: [short completion phrase]
+
+Break down this step:`;
+
+      const result = await this.model.generateContent(prompt);
+      const response = result.response;
+      const text = response.text();
+
+      return this.parseSplitResponse(text);
+    } catch (error) {
+      console.error('Error calling Gemini API for step split:', error);
+      throw new Error('Failed to split step. Please try again.');
+    }
+  }
+
   async breakdownTask(userTask: string): Promise<ParsedFlow> {
     try {
       const prompt = `${GLIDE_PROMPT}\n\n"${userTask}"`;
@@ -156,6 +196,63 @@ export class GeminiService {
     } catch (error) {
       console.error('Error parsing Gemini response:', error);
       throw new Error('Failed to parse task breakdown. Please try again.');
+    }
+  }
+
+  private parseSplitResponse(text: string): ParsedStep[] {
+    try {
+      const steps: ParsedStep[] = [];
+      const stepRegex = /Step (\d+):\s*(.+?)\s*\(⏳\s*(.+?)\)/g;
+
+      let match;
+      while ((match = stepRegex.exec(text)) !== null) {
+        const stepNumber = parseInt(match[1]);
+        const stepTitle = match[2].trim();
+        const timeEstimate = match[3].trim();
+
+        // Find the content between this step and the next
+        const stepStart = match.index;
+        const nextStepMatch = stepRegex.exec(text);
+        const stepEnd = nextStepMatch ? nextStepMatch.index : text.length;
+        stepRegex.lastIndex = stepStart + match[0].length; // Reset for next iteration
+
+        const stepContent = text.substring(stepStart + match[0].length, stepEnd);
+
+        // Extract description (everything except completion cue)
+        const completionCueMatch = stepContent.match(/Completion cue:\s*(.+)/i);
+        let completionCue = '✅ Step completed';
+        if (completionCueMatch) {
+          completionCue = completionCueMatch[1].trim();
+        }
+
+        // Description is everything before the completion cue
+        let description = stepContent.replace(/Completion cue:\s*.+/i, '').trim();
+
+        // Clean up description
+        description = description
+          .split('\n')
+          .filter(line => line.trim())
+          .map(line => line.trim())
+          .filter(line => line)
+          .join('\n');
+
+        steps.push({
+          stepNumber,
+          title: stepTitle,
+          timeEstimate,
+          description: description || 'Complete this step',
+          completionCue
+        });
+      }
+
+      if (steps.length === 0) {
+        throw new Error('No steps found in split response');
+      }
+
+      return steps;
+    } catch (error) {
+      console.error('Error parsing split response:', error);
+      throw new Error('Failed to parse step split. Please try again.');
     }
   }
 
