@@ -59,6 +59,19 @@ export default function App() {
     }
   }, [refreshTrigger, user]);
 
+  // Auto-navigate new users to Getting started flow
+  useEffect(() => {
+    if (user && flows.length > 0 && currentScreen === 'home') {
+      // Check if user only has the onboarding flow (new user)
+      const onboardingFlow = flows.find(flow => flow.title === "👋 Getting started in Glide");
+
+      if (onboardingFlow && flows.length === 1) {
+        // New user with only the onboarding flow - auto navigate
+        handleNavigateToFlowDetail(onboardingFlow.id);
+      }
+    }
+  }, [flows, user, currentScreen]);
+
   const loadFlows = async () => {
     if (!user) return;
 
