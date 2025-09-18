@@ -2,13 +2,13 @@ import { supabase } from '../config/supabase';
 import { User } from '@supabase/supabase-js';
 
 const ONBOARDING_FLOW = {
-  title: "Learn Glide Basics",
+  title: "👋 Getting started in Glide",
   steps: [
     {
       stepNumber: 1,
       title: "Explore This Flow",
       timeEstimate: "2 min",
-      description: "👉 Tap through the steps to see how a flow unfolds\n👀 Notice the quick time estimates and simple tips\n💡 Big tasks shrink into small, doable wins here",
+      description: "👉 Scroll through the steps to see how a flow unfolds\n👀 Notice the quick time estimates and simple tips\n💡 Big tasks shrink into small, doable wins here",
       completionCue: "You’ve seen how tasks shrink into small wins"
     },
     {
@@ -22,7 +22,7 @@ const ONBOARDING_FLOW = {
       stepNumber: 3,
       title: "Create Your First Flow",
       timeEstimate: "3 min",
-      description: "➕ Tap the \"New Flow\" button to start fresh\n✍️ Add something you've been putting off\n✨ Let Glide + AI break it into easy steps for you\n🌱 See how breaking down your task into small chunks helps you find your flow",
+      description: "Visit the Homepage to create a new flow\n✍️ Add something you've been putting off\n✨ Let Glide + AI break it into easy steps for you\n🌱 See how breaking down your task into small chunks helps you find your flow",
       completionCue: "You're Gliding through your tasks, without the drag"
     }
   ]
