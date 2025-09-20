@@ -3,7 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Animat
 import { Search, Clock, ArrowRight, Plus, Mic } from 'lucide-react-native';
 import { Flow } from '../types/database';
 import { databaseService } from '../services/database';
-import { Logo } from '../components/Logo';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -225,10 +224,9 @@ export default function HomeScreenContent({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header with Logo */}
+        {/* Header */}
         <View style={styles.header}>
-          <Logo />
-          <Text style={styles.title}>Every flow starts with a single step</Text>
+          <Text style={styles.title}>Good evening 🌝</Text>
         </View>
 
         {/* New Flow Input */}
@@ -343,7 +341,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     gap: 28,
-    paddingBottom: 32,
+    paddingBottom: 44,
   },
   title: {
     textAlign: 'center',
