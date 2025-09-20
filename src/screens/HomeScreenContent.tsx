@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Animated, ActivityIndicator, Dimensions } from 'react-native';
-import { Search, Clock, ArrowRight, Plus, Mic } from 'lucide-react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Animated, ActivityIndicator, Dimensions, Alert, ImageBackground, Image } from 'react-native';
+import { Search, ArrowRight, Plus, Mic } from 'lucide-react-native';
 import { Flow } from '../types/database';
 import { databaseService } from '../services/database';
 
 const { width: screenWidth } = Dimensions.get('window');
+
 
 interface HomeScreenContentProps {
   onFlowPress?: (flowId: string) => void;
@@ -77,11 +78,9 @@ const FlowItem = ({ flow, index, isHovered, onHover, onLeave, onPress, totalFlow
         <Text style={styles.flowTitle}>{flow.title}</Text>
         <View style={styles.flowMeta}>
           <View style={styles.stepInfo}>
-            <Clock size={18} color="#414651" />
             <Text style={styles.stepText}>{flow.step}</Text>
           </View>
           <View style={styles.timeInfo}>
-            <Clock size={18} color="#414651" />
             <Text style={styles.timeText}>{flow.time}</Text>
           </View>
         </View>
@@ -135,6 +134,19 @@ export default function HomeScreenContent({
   const [error, setError] = useState('');
   const inputRef = useRef<TextInput>(null);
 
+  // Weather states
+  const [weather, setWeather] = useState<{
+    temperature: number;
+    condition: string;
+    location: string;
+    loading: boolean;
+  }>({
+    temperature: 25,
+    condition: 'Partly cloudy',
+    location: 'Washington, DC',
+    loading: false,
+  });
+
   // Auto-focus the input when component mounts
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -142,6 +154,7 @@ export default function HomeScreenContent({
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
 
   // Update greeting every minute to catch time period changes
   useEffect(() => {
@@ -292,34 +305,98 @@ export default function HomeScreenContent({
           )}
         </View>
 
-        {/* Flows List Section */}
-        <View style={styles.flowsSection}>
-          <View style={styles.flowsList}>
-            {flowsLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#0A0D12" />
-                <Text style={styles.loadingText}>Loading your flows...</Text>
-              </View>
-            ) : flows.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No flows yet. Create your first flow above!</Text>
-              </View>
-            ) : (
-              flows.map((flow, index) => (
-                <FlowItem
-                  key={flow.id}
-                  flow={flow}
-                  index={index}
-                  isHovered={hoveredFlow === flow.id}
-                  onHover={() => setHoveredFlow(flow.id)}
-                  onLeave={() => setHoveredFlow(null)}
-                  onPress={() => onFlowPress?.(flow.id)}
-                  totalFlows={flows.length}
-                />
-              ))
-            )}
+        {/* Cards Section */}
+        <View style={styles.cardsSection}>
+          <View style={styles.cardsGrid}>
+            {/* 7 Day Streak Card */}
+            <ImageBackground
+              source={require('../../assets/plufow-le-studio-8LhVNaTYBfI-unsplash.jpg')}
+              style={styles.newCard}
+              imageStyle={styles.newCardImage}
+            >
+              <Image
+                source={require('../../assets/flame.png')}
+                style={styles.iconImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.newCardLabel}>7 day streak</Text>
+            </ImageBackground>
+
+            {/* Plan My Day Card */}
+            <ImageBackground
+              source={require('../../assets/zaky-jundana-5lRygFO1JEE-unsplash.jpg')}
+              style={styles.newCard}
+              imageStyle={styles.newCardImage}
+            >
+              <Image
+                source={require('../../assets/calendar.png')}
+                style={styles.iconImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.newCardLabel}>Plan my day</Text>
+            </ImageBackground>
+
+            {/* Pomodoro Card */}
+            <ImageBackground
+              source={require('../../assets/from-nio-fCk9k-vrcZM-unsplash.jpg')}
+              style={styles.newCard}
+              imageStyle={styles.newCardImage}
+            >
+              <Image
+                source={require('../../assets/clock-fading.png')}
+                style={styles.iconImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.newCardLabel}>Pomodoro</Text>
+            </ImageBackground>
+
+            {/* Ask Glide Card */}
+            <ImageBackground
+              source={require('../../assets/zaky-jundana-6grFyaQVt24-unsplash.jpg')}
+              style={styles.newCard}
+              imageStyle={styles.newCardImage}
+            >
+              <Image
+                source={require('../../assets/line-squiggle.png')}
+                style={styles.iconImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.newCardLabel}>Ask Glide</Text>
+            </ImageBackground>
           </View>
         </View>
+
+{/* Flows List Section - Hidden */}
+        {false && (
+          <View style={styles.flowsSection}>
+            <Text style={styles.flowsHeading}>My flows</Text>
+            <View style={styles.flowsList}>
+              {flowsLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#0A0D12" />
+                  <Text style={styles.loadingText}>Loading your flows...</Text>
+                </View>
+              ) : flows.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No flows yet. Create your first flow above!</Text>
+                </View>
+              ) : (
+                flows.map((flow, index) => (
+                  <FlowItem
+                    key={flow.id}
+                    flow={flow}
+                    index={index}
+                    isHovered={hoveredFlow === flow.id}
+                    onHover={() => setHoveredFlow(flow.id)}
+                    onLeave={() => setHoveredFlow(null)}
+                    onPress={() => onFlowPress?.(flow.id)}
+                    totalFlows={flows.length}
+                  />
+                ))
+              )}
+            </View>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -334,6 +411,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     paddingTop: 64,
     paddingBottom: 40,
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   header: {
     width: Math.min(680, screenWidth - 80),
@@ -367,7 +446,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#D9D9D9',
     overflow: 'hidden',
-    marginBottom: 64,
+    marginBottom: 0,
   },
   inputField: {
     paddingTop: 16,
@@ -452,6 +531,13 @@ const styles = StyleSheet.create({
   flowsSection: {
     width: Math.min(680, screenWidth - 80),
     alignSelf: 'center',
+  },
+  flowsHeading: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#0A0D12',
+    marginBottom: 24,
+    textAlign: 'left',
   },
   sectionHeaderContainer: {
     flexDirection: 'row',
@@ -563,5 +649,58 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '400',
     textAlign: 'center',
+  },
+  // Cards Section Styles
+  cardsSection: {
+    width: Math.min(680, screenWidth - 80),
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 64,
+  },
+  cardsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  newCard: {
+    width: (Math.min(680, screenWidth - 80) - 36) / 4,
+    height: 160,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    overflow: 'hidden',
+  },
+  newCardImage: {
+    borderRadius: 16,
+  },
+  iconContainer: {
+    width: 47,
+    height: 47,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: 'rgba(0, 0, 0, 0.13)',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  iconImage: {
+    width: 44,
+    height: 44,
+  },
+  newCardLabel: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+    lineHeight: 22.4,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
 });
