@@ -208,6 +208,7 @@ export default function App() {
           flows={flows}
           flowsLoading={flowsLoading}
           initialInputText={editFlowText}
+          user={user}
         />
 
         {/* Flow detail overlay - only when on flowDetail screen */}

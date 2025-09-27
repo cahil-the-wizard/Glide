@@ -31,9 +31,34 @@ const ONBOARDING_FLOW = {
 export interface AuthUser {
   id: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export class AuthService {
+  // Fetch user profile from users_profile table
+  async getUserProfile(userId: string): Promise<{ firstName?: string; lastName?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('users_profile')
+        .select('first_name, last_name')
+        .eq('id', userId)
+        .single();
+
+      if (error || !data) {
+        return {};
+      }
+
+      return {
+        firstName: data.first_name,
+        lastName: data.last_name
+      };
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return {};
+    }
+  }
+
   // Check if user needs onboarding flow and create it
   async ensureOnboardingFlow(userId: string): Promise<void> {
     try {
@@ -102,7 +127,7 @@ export class AuthService {
   }
 
   // Sign up with email and password
-  async signUp(email: string, password: string): Promise<{ user: AuthUser | null; error: string | null }> {
+  async signUp(email: string, password: string, firstName: string, lastName: string): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -117,10 +142,30 @@ export class AuthService {
       }
 
       if (data.user) {
+        // Create user profile in users_profile table
+        try {
+          const { error: profileError } = await supabase
+            .from('users_profile')
+            .insert({
+              id: data.user.id,
+              first_name: firstName,
+              last_name: lastName
+            });
+
+          if (profileError) {
+            console.error('Error creating user profile:', profileError);
+            // Don't fail signup if profile creation fails, but log it
+          }
+        } catch (profileErr) {
+          console.error('Error creating user profile:', profileErr);
+        }
+
         return {
           user: {
             id: data.user.id,
-            email: data.user.email || email
+            email: data.user.email || email,
+            firstName,
+            lastName
           },
           error: null
         };
@@ -145,10 +190,15 @@ export class AuthService {
       }
 
       if (data.user) {
+        // Fetch user profile
+        const profile = await this.getUserProfile(data.user.id);
+
         return {
           user: {
             id: data.user.id,
-            email: data.user.email || email
+            email: data.user.email || email,
+            firstName: profile.firstName,
+            lastName: profile.lastName
           },
           error: null
         };
@@ -176,9 +226,14 @@ export class AuthService {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
+        // Fetch user profile
+        const profile = await this.getUserProfile(user.id);
+
         return {
           id: user.id,
-          email: user.email || ''
+          email: user.email || '',
+          firstName: profile.firstName,
+          lastName: profile.lastName
         };
       }
 
@@ -190,11 +245,16 @@ export class AuthService {
 
   // Listen to auth state changes
   onAuthStateChange(callback: (user: AuthUser | null) => void) {
-    return supabase.auth.onAuthStateChange((event, session) => {
+    return supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
+        // Fetch user profile
+        const profile = await this.getUserProfile(session.user.id);
+
         callback({
           id: session.user.id,
-          email: session.user.email || ''
+          email: session.user.email || '',
+          firstName: profile.firstName,
+          lastName: profile.lastName
         });
       } else {
         callback(null);

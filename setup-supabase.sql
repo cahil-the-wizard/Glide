@@ -1,6 +1,15 @@
 -- TotallyWizardApp Database Setup
 -- Run this in your Supabase SQL Editor after creating a project
 
+-- Create users_profile table
+CREATE TABLE users_profile (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create flows table
 CREATE TABLE flows (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -25,8 +34,19 @@ CREATE TABLE steps (
 );
 
 -- Add RLS policies
+ALTER TABLE users_profile ENABLE ROW LEVEL SECURITY;
 ALTER TABLE flows ENABLE ROW LEVEL SECURITY;
 ALTER TABLE steps ENABLE ROW LEVEL SECURITY;
+
+-- Policies for users_profile
+CREATE POLICY "Users can view their own profile" ON users_profile
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert their own profile" ON users_profile
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile" ON users_profile
+  FOR UPDATE USING (auth.uid() = id);
 
 -- Policies for flows
 CREATE POLICY "Users can view their own flows" ON flows

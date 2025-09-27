@@ -14,6 +14,7 @@ interface HomeScreenContentProps {
   flows: Flow[];
   flowsLoading: boolean;
   initialInputText?: string;
+  user?: { firstName?: string; lastName?: string } | null;
 }
 
 interface FlowWithProgress {
@@ -104,17 +105,18 @@ const FlowItem = ({ flow, index, isHovered, onHover, onLeave, onPress, totalFlow
   );
 };
 
-const getTimeBasedGreeting = (): string => {
+const getTimeBasedGreeting = (firstName?: string): string => {
   const hour = new Date().getHours();
+  const name = firstName ? `, ${firstName}` : '';
 
   if (hour >= 5 && hour < 12) {
-    return "Glide into your day";
+    return `Good morning${name} 🌅`;
   } else if (hour >= 12 && hour < 17) {
-    return "Glide past the midday slump";
+    return `Good afternoon${name} ☀️`;
   } else if (hour >= 17 && hour < 21) {
-    return "Glide toward tomorrow";
+    return `Good evening${name} 🌝`;
   } else {
-    return "Glide into calm";
+    return `Good night${name} 🌙`;
   }
 };
 
@@ -123,12 +125,13 @@ export default function HomeScreenContent({
   onFlowCreated,
   flows: rawFlows,
   flowsLoading,
-  initialInputText
+  initialInputText,
+  user
 }: HomeScreenContentProps) {
   const [searchText, setSearchText] = useState('');
   const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
   const [flows, setFlows] = useState<FlowWithProgress[]>([]);
-  const [greeting, setGreeting] = useState(getTimeBasedGreeting());
+  const [greeting, setGreeting] = useState(getTimeBasedGreeting(user?.firstName));
 
   // New flow input states
   const [inputText, setInputText] = useState(initialInputText || '');
@@ -172,7 +175,7 @@ export default function HomeScreenContent({
   // Update greeting every minute to catch time period changes
   useEffect(() => {
     const updateGreeting = () => {
-      setGreeting(getTimeBasedGreeting());
+      setGreeting(getTimeBasedGreeting(user?.firstName));
     };
 
     // Update immediately and then every minute
@@ -180,7 +183,7 @@ export default function HomeScreenContent({
     const interval = setInterval(updateGreeting, 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [user?.firstName]);
 
   // Transform flows when rawFlows changes
   useEffect(() => {
@@ -252,7 +255,7 @@ export default function HomeScreenContent({
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Good evening 🌝</Text>
+          <Text style={styles.title}>{greeting}</Text>
         </View>
 
         {/* New Flow Input */}

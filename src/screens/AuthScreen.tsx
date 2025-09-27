@@ -11,6 +11,8 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,12 +22,17 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       return;
     }
 
+    if (isSignUp && (!firstName.trim() || !lastName.trim())) {
+      setError('Please enter both first and last name');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
       const result = isSignUp
-        ? await authService.signUp(email.trim(), password)
+        ? await authService.signUp(email.trim(), password, firstName.trim(), lastName.trim())
         : await authService.signIn(email.trim(), password);
 
       if (result.error) {
@@ -54,6 +61,38 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
         </View>
 
         <View style={styles.form}>
+          {isSignUp && (
+            <>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>First Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your first name"
+                  placeholderTextColor="#A4A7AE"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  autoCapitalize="words"
+                  editable={!loading}
+                  returnKeyType="next"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Last Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your last name"
+                  placeholderTextColor="#A4A7AE"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  autoCapitalize="words"
+                  editable={!loading}
+                  returnKeyType="next"
+                />
+              </View>
+            </>
+          )}
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
@@ -110,6 +149,8 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
             onPress={() => {
               setIsSignUp(!isSignUp);
               setError('');
+              setFirstName('');
+              setLastName('');
             }}
             disabled={loading}
           >
