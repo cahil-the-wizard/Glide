@@ -12,6 +12,7 @@ import { Flow } from './src/types/database';
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'home' | 'flowDetail'>('home');
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
+  const [editFlowText, setEditFlowText] = useState<string | undefined>(undefined);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -59,18 +60,21 @@ export default function App() {
     }
   }, [refreshTrigger, user]);
 
-  // Auto-navigate new users to Getting started flow
+  // Auto-navigate new users to Getting started flow (only once)
+  const [hasAutoNavigated, setHasAutoNavigated] = useState(false);
+
   useEffect(() => {
-    if (user && flows.length > 0 && currentScreen === 'home') {
+    if (user && flows.length > 0 && currentScreen === 'home' && !hasAutoNavigated) {
       // Check if user only has the onboarding flow (new user)
       const onboardingFlow = flows.find(flow => flow.title === "👋 Getting started in Glide");
 
       if (onboardingFlow && flows.length === 1) {
         // New user with only the onboarding flow - auto navigate
+        setHasAutoNavigated(true);
         handleNavigateToFlowDetail(onboardingFlow.id);
       }
     }
-  }, [flows, user, currentScreen]);
+  }, [flows, user, currentScreen, hasAutoNavigated]);
 
   const loadFlows = async () => {
     if (!user) return;
@@ -113,6 +117,8 @@ export default function App() {
       ]).start(() => {
         setCurrentScreen('home');
         setIsAnimating(false);
+        // Clear edit flow text after a brief delay to allow the input to update
+        setTimeout(() => setEditFlowText(undefined), 100);
       });
     } else {
       setCurrentScreen('home');
@@ -145,6 +151,18 @@ export default function App() {
     ]).start(() => {
       setIsAnimating(false);
     });
+  };
+
+  const handleFlowDeleted = () => {
+    // Refresh flows list and navigate back to home
+    setRefreshTrigger(prev => prev + 1);
+    handleNavigateToHome();
+  };
+
+  const handleEditFlow = (flowTitle: string) => {
+    // Set the flow title as initial input text and navigate to home
+    setEditFlowText(flowTitle);
+    handleNavigateToHome();
   };
 
   const handleToggleSidebar = () => {
@@ -189,6 +207,7 @@ export default function App() {
           onFlowCreated={handleFlowCreated}
           flows={flows}
           flowsLoading={flowsLoading}
+          initialInputText={editFlowText}
         />
 
         {/* Flow detail overlay - only when on flowDetail screen */}
@@ -208,6 +227,8 @@ export default function App() {
             <FlowDetailScreenContent
               flowId={selectedFlowId}
               onBackPress={handleNavigateToHome}
+              onFlowDeleted={handleFlowDeleted}
+              onEditFlow={handleEditFlow}
             />
           </Animated.View>
         )}

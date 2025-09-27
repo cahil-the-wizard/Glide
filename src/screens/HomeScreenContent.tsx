@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Animat
 import { Search, ArrowRight, Plus, Mic } from 'lucide-react-native';
 import { Flow } from '../types/database';
 import { databaseService } from '../services/database';
+import ChatPanel from '../components/ChatPanel';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -12,6 +13,7 @@ interface HomeScreenContentProps {
   onFlowCreated?: (flowId: string) => void;
   flows: Flow[];
   flowsLoading: boolean;
+  initialInputText?: string;
 }
 
 interface FlowWithProgress {
@@ -120,7 +122,8 @@ export default function HomeScreenContent({
   onFlowPress,
   onFlowCreated,
   flows: rawFlows,
-  flowsLoading
+  flowsLoading,
+  initialInputText
 }: HomeScreenContentProps) {
   const [searchText, setSearchText] = useState('');
   const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
@@ -128,7 +131,7 @@ export default function HomeScreenContent({
   const [greeting, setGreeting] = useState(getTimeBasedGreeting());
 
   // New flow input states
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState(initialInputText || '');
   const [isLoading, setIsLoading] = useState(false);
   const [progressMessage, setProgressMessage] = useState('');
   const [error, setError] = useState('');
@@ -147,6 +150,9 @@ export default function HomeScreenContent({
     loading: false,
   });
 
+  // Chat panel state
+  const [isChatPanelVisible, setIsChatPanelVisible] = useState(false);
+
   // Auto-focus the input when component mounts
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -154,6 +160,13 @@ export default function HomeScreenContent({
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Update input text when initialInputText changes
+  useEffect(() => {
+    if (initialInputText !== undefined) {
+      setInputText(initialInputText);
+    }
+  }, [initialInputText]);
 
 
   // Update greeting every minute to catch time period changes
@@ -351,18 +364,68 @@ export default function HomeScreenContent({
             </ImageBackground>
 
             {/* Ask Glide Card */}
-            <ImageBackground
-              source={require('../../assets/zaky-jundana-6grFyaQVt24-unsplash.jpg')}
-              style={styles.newCard}
-              imageStyle={styles.newCardImage}
-            >
-              <Image
-                source={require('../../assets/line-squiggle.png')}
-                style={styles.iconImage}
-                resizeMode="contain"
-              />
-              <Text style={styles.newCardLabel}>Ask Glide</Text>
-            </ImageBackground>
+            <TouchableOpacity onPress={() => setIsChatPanelVisible(true)}>
+              <ImageBackground
+                source={require('../../assets/zaky-jundana-6grFyaQVt24-unsplash.jpg')}
+                style={styles.newCard}
+                imageStyle={styles.newCardImage}
+              >
+                <Image
+                  source={require('../../assets/line-squiggle.png')}
+                  style={styles.iconImage}
+                  resizeMode="contain"
+                />
+                <Text style={styles.newCardLabel}>Ask Glide</Text>
+              </ImageBackground>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Recent Flows Section */}
+        <View style={styles.recentFlowsSection}>
+          <Text style={styles.recentFlowsHeading}>Recent flows</Text>
+          <View style={styles.recentFlowsContainer}>
+            <View style={styles.recentFlowsList}>
+              {flowsLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#0A0D12" />
+                  <Text style={styles.loadingText}>Loading your flows...</Text>
+                </View>
+              ) : flows.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No flows yet. Create your first flow above!</Text>
+                </View>
+              ) : (
+                flows.map((flow, index) => (
+                  <TouchableOpacity
+                    key={flow.id}
+                    style={[
+                      styles.recentFlowItem,
+                      index === flows.length - 1 && styles.lastRecentFlowItem
+                    ]}
+                    onPress={() => onFlowPress?.(flow.id)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#F0F0F0';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  >
+                    <View style={styles.recentFlowContent}>
+                      <Text style={styles.recentFlowTitle}>{flow.title}</Text>
+                      <View style={styles.recentFlowMeta}>
+                        <View style={styles.recentFlowMetaItem}>
+                          <Text style={styles.recentFlowMetaText}>{flow.step}</Text>
+                        </View>
+                        <View style={styles.recentFlowMetaItem}>
+                          <Text style={styles.recentFlowMetaText}>{flow.time}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
           </View>
         </View>
 
@@ -398,6 +461,12 @@ export default function HomeScreenContent({
           </View>
         )}
       </ScrollView>
+
+      {/* Chat Panel */}
+      <ChatPanel
+        isVisible={isChatPanelVisible}
+        onClose={() => setIsChatPanelVisible(false)}
+      />
     </View>
   );
 }
@@ -411,8 +480,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     paddingTop: 64,
     paddingBottom: 40,
-    flexGrow: 1,
-    justifyContent: 'center',
   },
   header: {
     width: Math.min(680, screenWidth - 80),
@@ -426,7 +493,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: 'black',
     fontSize: 32,
-    fontWeight: '400',
+    fontWeight: '500',
     lineHeight: 38.4,
     maxWidth: 600,
   },
@@ -702,5 +769,63 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+  },
+  // Recent Flows Section Styles
+  recentFlowsSection: {
+    width: Math.min(680, screenWidth - 80),
+    alignSelf: 'center',
+    marginTop: 24,
+    gap: 12,
+  },
+  recentFlowsHeading: {
+    color: '#535862',
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 19.6,
+  },
+  recentFlowsContainer: {
+    width: Math.min(600, screenWidth - 80),
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  recentFlowsList: {
+    width: '100%',
+  },
+  recentFlowItem: {
+    height: 86,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9EAEB',
+    justifyContent: 'center',
+  },
+  lastRecentFlowItem: {
+    borderBottomWidth: 0,
+  },
+  recentFlowContent: {
+    gap: 4,
+  },
+  recentFlowTitle: {
+    color: '#181D27',
+    fontSize: 16,
+    fontWeight: '500',
+    lineHeight: 22.4,
+  },
+  recentFlowMeta: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  recentFlowMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  recentFlowMetaText: {
+    color: '#252B37',
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 19.6,
   },
 });

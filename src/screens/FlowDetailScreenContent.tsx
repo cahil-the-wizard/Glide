@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, ActivityIndicator } from 'react-native';
-import { ArrowLeft, Copy, MoreHorizontal, Check, Split } from 'lucide-react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, ActivityIndicator, Animated, Modal } from 'react-native';
+import { ArrowLeft, Copy, MoreHorizontal, Check, Split, Trash2, Copy as DuplicateIcon, Edit, ExternalLink } from 'lucide-react-native';
 import { Flow, Step } from '../types/database';
 import { databaseService } from '../services/database';
 import { soundService } from '../services/sound';
@@ -8,6 +8,8 @@ import { soundService } from '../services/sound';
 interface FlowDetailScreenContentProps {
   flowId: string;
   onBackPress?: () => void;
+  onFlowDeleted?: () => void;
+  onEditFlow?: (flowTitle: string) => void;
 }
 
 const StepItem = ({ step, isLast, onToggleComplete, onSplitStep, splitLoading }: {
@@ -106,7 +108,9 @@ const StepItem = ({ step, isLast, onToggleComplete, onSplitStep, splitLoading }:
 
 export default function FlowDetailScreenContent({
   flowId,
-  onBackPress
+  onBackPress,
+  onFlowDeleted,
+  onEditFlow
 }: FlowDetailScreenContentProps) {
   const [flow, setFlow] = useState<Flow | null>(null);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -114,6 +118,11 @@ export default function FlowDetailScreenContent({
   const [error, setError] = useState<string>('');
   const [splitLoading, setSplitLoading] = useState<string | null>(null);
   const [splitMessage, setSplitMessage] = useState<string>('');
+  const [showHeaderTitle, setShowHeaderTitle] = useState(false);
+  const [showMoreDropdown, setShowMoreDropdown] = useState(false);
+  const [showHeaderStroke, setShowHeaderStroke] = useState(false);
+  const headerTitleOpacity = useRef(new Animated.Value(0)).current;
+  const headerStrokeOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadFlowData();
@@ -184,6 +193,51 @@ export default function FlowDetailScreenContent({
     }
   };
 
+  const handleDeleteFlow = async () => {
+    try {
+      await databaseService.deleteFlow(flowId);
+      onFlowDeleted?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete flow');
+    }
+  };
+
+  const handleDuplicateFlow = async () => {
+    if (!flow) return;
+
+    try {
+      // Create a new flow with the same title (with "Copy" prefix)
+      const duplicatedFlow = await databaseService.createFlowFromTask(
+        `Copy of ${flow.title}`,
+        (message: string) => console.log('Duplicating:', message)
+      );
+
+      // Navigate back to see the new flow
+      onBackPress?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to duplicate flow');
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (typeof window !== 'undefined') {
+      const url = `${window.location.origin}/flow/${flowId}`;
+      navigator.clipboard.writeText(url).then(() => {
+        // Could show a toast or feedback here
+        console.log('Link copied to clipboard');
+      }).catch(err => {
+        console.error('Failed to copy link:', err);
+      });
+    }
+  };
+
+  const handleEditFlow = () => {
+    if (flow) {
+      // Pass the flow title as the prompt to edit
+      onEditFlow?.(flow.title);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -208,27 +262,81 @@ export default function FlowDetailScreenContent({
   const completedSteps = steps.filter(step => step.is_completed).length;
   return (
     <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header with back button and actions */}
-        <View style={styles.headerActions}>
+      {/* Sticky Header with back button and actions */}
+      <View style={styles.headerActions}>
+        <View style={styles.headerLeft}>
           <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
             <ArrowLeft size={18} color="#0A0D12" />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
-
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.copyButton}>
-              <Copy size={18} color="#0A0D12" />
-              <Text style={styles.copyButtonText}>Copy Steps</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.moreButton}>
-              <MoreHorizontal size={18} color="#0A0D12" />
-            </TouchableOpacity>
-          </View>
+          {flow && (
+            <Animated.Text
+              style={[
+                styles.headerTitle,
+                {
+                  opacity: headerTitleOpacity,
+                }
+              ]}
+            >
+              {flow.title}
+            </Animated.Text>
+          )}
         </View>
+
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.copyButton}>
+            <Copy size={18} color="#0A0D12" />
+            <Text style={styles.copyButtonText}>Copy Steps</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={() => setShowMoreDropdown(true)}
+          >
+            <MoreHorizontal size={18} color="#0A0D12" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Animated bottom stroke */}
+        <Animated.View
+          style={[
+            styles.headerStroke,
+            {
+              opacity: headerStrokeOpacity,
+            }
+          ]}
+        />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        onScroll={(event) => {
+          const scrollY = event.nativeEvent.contentOffset.y;
+          const shouldShow = scrollY > 120;
+          const shouldShowStroke = scrollY > 10;
+
+          if (shouldShow !== showHeaderTitle) {
+            setShowHeaderTitle(shouldShow);
+
+            Animated.timing(headerTitleOpacity, {
+              toValue: shouldShow ? 1 : 0,
+              duration: 200,
+              useNativeDriver: true,
+            }).start();
+          }
+
+          if (shouldShowStroke !== showHeaderStroke) {
+            setShowHeaderStroke(shouldShowStroke);
+
+            Animated.timing(headerStrokeOpacity, {
+              toValue: shouldShowStroke ? 1 : 0,
+              duration: 150,
+              useNativeDriver: true,
+            }).start();
+          }
+        }}
+        scrollEventThrottle={16}
+      >
 
         {/* Flow title and progress */}
         <View style={styles.flowHeader}>
@@ -260,6 +368,68 @@ export default function FlowDetailScreenContent({
           </View>
         )}
       </ScrollView>
+
+      {/* More Options Dropdown Modal */}
+      <Modal
+        visible={showMoreDropdown}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMoreDropdown(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMoreDropdown(false)}
+        >
+          <View style={styles.dropdown}>
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                setShowMoreDropdown(false);
+                handleEditFlow();
+              }}
+            >
+              <Edit size={18} color="#0A0D12" />
+              <Text style={styles.dropdownItemText}>Edit flow</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                setShowMoreDropdown(false);
+                handleDuplicateFlow();
+              }}
+            >
+              <DuplicateIcon size={18} color="#0A0D12" />
+              <Text style={styles.dropdownItemText}>Duplicate</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                setShowMoreDropdown(false);
+                handleCopyLink();
+              }}
+            >
+              <ExternalLink size={18} color="#0A0D12" />
+              <Text style={styles.dropdownItemText}>Copy link</Text>
+            </TouchableOpacity>
+
+            <View style={styles.dropdownDivider} />
+
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                setShowMoreDropdown(false);
+                handleDeleteFlow();
+              }}
+            >
+              <Trash2 size={18} color="#DC2626" />
+              <Text style={[styles.dropdownItemText, styles.dropdownItemTextDanger]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -270,32 +440,49 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   scrollContent: {
-    paddingHorizontal: 40,
-    paddingTop: 64,
+    paddingTop: 70,
     paddingBottom: 40,
   },
   headerActions: {
-    width: 600,
-    alignSelf: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'white',
+    zIndex: 1000,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    flex: 1,
+  },
+  headerTitle: {
+    color: '#0A0D12',
+    fontSize: 18,
+    fontWeight: '500',
+    lineHeight: 24,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 12,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     backgroundColor: '#F5F5F5',
     borderRadius: 38,
   },
   backButtonText: {
     color: '#0A0D12',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
-    lineHeight: 22.4,
+    lineHeight: 20,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -305,24 +492,25 @@ const styles = StyleSheet.create({
   copyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderRadius: 38,
   },
   copyButtonText: {
     color: '#0A0D12',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
-    lineHeight: 22.4,
+    lineHeight: 20,
   },
   moreButton: {
-    padding: 8,
+    padding: 6,
     borderRadius: 38,
   },
   flowHeader: {
-    width: 600,
+    width: 700,
     alignSelf: 'center',
+    paddingHorizontal: 20,
     paddingVertical: 16,
     gap: 4,
   },
@@ -339,8 +527,9 @@ const styles = StyleSheet.create({
     lineHeight: 22.4,
   },
   stepsList: {
-    width: 600,
+    width: 700,
     alignSelf: 'center',
+    paddingHorizontal: 20,
   },
   stepContainer: {
     paddingTop: 20,
@@ -464,5 +653,56 @@ const styles = StyleSheet.create({
     color: '#DC2626',
     textAlign: 'center',
     marginBottom: 16,
+  },
+  // Dropdown Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 70,
+    paddingRight: 20,
+  },
+  dropdown: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 8,
+    minWidth: 200,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingVertical: 8,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#0A0D12',
+  },
+  dropdownItemTextDanger: {
+    color: '#DC2626',
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 4,
+    marginHorizontal: 8,
+  },
+  headerStroke: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: '#E5E7EB',
   },
 });

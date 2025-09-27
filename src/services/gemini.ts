@@ -76,6 +76,53 @@ export interface ParsedFlow {
 
 export class GeminiService {
   private model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  private chatModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+  async generateChatResponse(message: string, conversationHistory: string[] = []): Promise<string> {
+    try {
+      // Create a context-aware prompt for Glide chat
+      const systemPrompt = `You are Glide AI, a helpful productivity assistant built into the Glide app. Glide helps users break down overwhelming tasks into manageable flows of steps. You should be:
+
+- Friendly, encouraging, and supportive
+- Focused on productivity, task management, and breaking down complex problems
+- Able to suggest creating flows when users mention tasks they're struggling with
+- Knowledgeable about productivity techniques like Pomodoro, time-blocking, etc.
+- Conversational and helpful
+- Concise but warm in your responses
+
+Context: This is a chat conversation within the Glide productivity app. Users can create "flows" which break down big tasks into smaller manageable steps.
+
+Previous conversation:
+${conversationHistory.length > 0 ? conversationHistory.join('\n') : 'This is the start of the conversation.'}
+
+User: ${message}
+
+Respond as Glide AI in a helpful, encouraging way. Keep responses concise but warm (1-3 sentences usually). If the user mentions a task they're struggling with, suggest they could create a flow for it.`;
+
+      const result = await this.chatModel.generateContent(systemPrompt);
+      const response = result.response;
+      return response.text();
+    } catch (error) {
+      console.error('Gemini Chat API Error:', error);
+      return this.getFallbackChatResponse(message);
+    }
+  }
+
+  private getFallbackChatResponse(message: string): string {
+    const fallbackResponses = [
+      "I'm having trouble connecting right now, but I'm here to help! What task would you like to break down into manageable steps?",
+      "Sorry, I'm experiencing some technical difficulties. In the meantime, try creating a new flow for whatever you're working on!",
+      "I'm temporarily unavailable, but Glide is still here to help you tackle your tasks. Would you like to create a flow?",
+      "Connection issues on my end! While I get back online, remember that breaking big tasks into small steps is the key to getting unstuck.",
+    ];
+
+    return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+  }
+
+  // Method to check if the service is properly configured
+  isConfigured(): boolean {
+    return API_KEY && API_KEY !== 'your-gemini-api-key';
+  }
 
   async splitStep(stepTitle: string, stepDescription: string, timeEstimate: string): Promise<ParsedStep[]> {
     try {

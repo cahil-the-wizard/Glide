@@ -117,9 +117,6 @@ export class AuthService {
       }
 
       if (data.user) {
-        // Create onboarding flow for new users
-        await this.createOnboardingFlow(data.user.id);
-
         return {
           user: {
             id: data.user.id,
