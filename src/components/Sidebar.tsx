@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Modal, Animated } from 'react-native';
-import { Home, Search, LogOut, PanelRightOpen, PanelLeftOpen } from 'lucide-react-native';
+import { Home, Search, Plus, LogOut, PanelRightOpen, PanelLeftOpen } from 'lucide-react-native';
 import { Logo } from './Logo';
 import { Flow } from '../types/database';
 import { databaseService } from '../services/database';
@@ -9,6 +9,7 @@ import { authService } from '../services/auth';
 interface SidebarProps {
   currentScreen?: 'home' | 'newFlow' | 'flowDetail';
   onHomePress?: () => void;
+  onNewFlowPress?: () => void;
   onSearchPress?: () => void;
   onFlowPress?: (flowId: string) => void;
   flows: Flow[];
@@ -21,6 +22,7 @@ interface SidebarProps {
 export default function Sidebar({
   currentScreen = 'home',
   onHomePress,
+  onNewFlowPress,
   onSearchPress,
   onFlowPress,
   flows,
@@ -54,8 +56,6 @@ export default function Sidebar({
           {collapsed ? (
             <TouchableOpacity
               style={styles.logoContainer}
-              onMouseEnter={() => setLogoHovered(true)}
-              onMouseLeave={() => setLogoHovered(false)}
               onPress={onToggleCollapse}
             >
               {logoHovered ? (
@@ -84,15 +84,25 @@ export default function Sidebar({
           <TouchableOpacity
             style={[
               collapsed ? styles.navItemCollapsed : styles.navItem,
-              hoveredNavItem === 'home' && styles.navItemHover,
               currentScreen === 'home' && styles.navItemActive
             ]}
-            onMouseEnter={() => setHoveredNavItem('home')}
-            onMouseLeave={() => setHoveredNavItem(null)}
             onPress={onHomePress}
           >
             <Home size={18} color="#0A0D12" />
             {!collapsed && <Text style={styles.navText}>Home</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              collapsed ? styles.navItemCollapsed : styles.navItem,
+              hoveredNavItem === 'newFlow' && styles.navItemHover,
+              currentScreen === 'newFlow' && styles.navItemActive
+            ]}
+            onMouseEnter={() => setHoveredNavItem('newFlow')}
+            onMouseLeave={() => setHoveredNavItem(null)}
+            onPress={onNewFlowPress}
+          >
+            <Plus size={18} color="#0A0D12" />
+            {!collapsed && <Text style={styles.navText}>Add task</Text>}
           </TouchableOpacity>
           <TouchableOpacity
             style={[

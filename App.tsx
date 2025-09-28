@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Animated, Easing } from 'react-native';
 import HomeScreenContent from './src/screens/HomeScreenContent';
 import FlowDetailScreenContent from './src/screens/FlowDetailScreenContent';
+import NewFlowScreen from './src/screens/NewFlowScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import Sidebar from './src/components/Sidebar';
 import { authService, AuthUser } from './src/services/auth';
@@ -10,7 +11,7 @@ import { databaseService } from './src/services/database';
 import { Flow } from './src/types/database';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'flowDetail'>('home');
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'newFlow' | 'flowDetail'>('home');
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
   const [editFlowText, setEditFlowText] = useState<string | undefined>(undefined);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -98,7 +99,7 @@ export default function App() {
   };
 
   const handleNavigateToHome = () => {
-    if (currentScreen === 'flowDetail') {
+    if (currentScreen === 'flowDetail' || currentScreen === 'newFlow') {
       // Fade out and slide out to the right
       setIsAnimating(true);
       Animated.parallel([
@@ -165,6 +166,33 @@ export default function App() {
     handleNavigateToHome();
   };
 
+  const handleNavigateToNewFlow = () => {
+    setIsAnimating(true);
+
+    // Start from the right with fade
+    slideAnim.setValue(32);
+    fadeAnim.setValue(0);
+    setCurrentScreen('newFlow');
+
+    // Fade in and slide in from the right
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 450,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 450,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+    ]).start(() => {
+      setIsAnimating(false);
+    });
+  };
+
   const handleToggleSidebar = () => {
     const toValue = sidebarCollapsed ? 260 : 64;
 
@@ -192,6 +220,7 @@ export default function App() {
       <Sidebar
         currentScreen={currentScreen}
         onHomePress={handleNavigateToHome}
+        onNewFlowPress={handleNavigateToNewFlow}
         onFlowPress={handleNavigateToFlowDetail}
         flows={flows}
         flowsLoading={flowsLoading}
@@ -210,6 +239,27 @@ export default function App() {
           initialInputText={editFlowText}
           user={user}
         />
+
+        {/* New flow overlay - only when on newFlow screen */}
+        {(currentScreen === 'newFlow' || isAnimating) && currentScreen === 'newFlow' && (
+          <Animated.View
+            style={[
+              styles.animatedContainer,
+              styles.overlay,
+              {
+                opacity: fadeAnim,
+                transform: [{
+                  translateX: slideAnim
+                }]
+              }
+            ]}
+          >
+            <NewFlowScreen
+              onBackPress={handleNavigateToHome}
+              onFlowCreated={handleFlowCreated}
+            />
+          </Animated.View>
+        )}
 
         {/* Flow detail overlay - only when on flowDetail screen */}
         {(currentScreen === 'flowDetail' || isAnimating) && selectedFlowId && (

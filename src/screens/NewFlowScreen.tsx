@@ -52,7 +52,7 @@ export default function NewFlowScreen({ onBackPress, onFlowCreated }: NewFlowScr
       <View style={styles.content}>
         <View style={styles.header}>
           <Logo />
-          <Text style={styles.title}>Every flow starts with a single step</Text>
+          <Text style={styles.title}>Every path starts with a single step</Text>
         </View>
 
         <View style={styles.inputContainer}>
@@ -61,7 +61,7 @@ export default function NewFlowScreen({ onBackPress, onFlowCreated }: NewFlowScr
               <TextInput
                 ref={inputRef}
                 style={styles.textInput}
-                placeholder="What's something you're struggling to start?"
+                placeholder="Describe any task—we'll create actionable steps"
                 placeholderTextColor="#A4A7AE"
                 value={inputText}
                 onChangeText={setInputText}
