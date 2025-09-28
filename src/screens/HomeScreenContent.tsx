@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Animated, ActivityIndicator, Dimensions, Alert, ImageBackground, Image } from 'react-native';
-import { Search, ArrowRight, Plus, Mic } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
 import { Flow } from '../types/database';
 import { databaseService } from '../services/database';
 import ChatPanel from '../components/ChatPanel';
+import TodaysPath from '../components/TodaysPath';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -24,101 +24,7 @@ interface FlowWithProgress {
   time: string;
 }
 
-const FlowItem = ({ flow, index, isHovered, onHover, onLeave, onPress, totalFlows }: {
-  flow: FlowWithProgress;
-  index: number;
-  isHovered: boolean;
-  onHover: () => void;
-  onLeave: () => void;
-  onPress?: () => void;
-  totalFlows: number;
-}) => {
-  const fadeAnim = useState(new Animated.Value(0))[0];
-  const slideAnim = useState(new Animated.Value(4))[0];
 
-  React.useEffect(() => {
-    if (isHovered) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: false,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: false,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: false,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 4,
-          duration: 150,
-          useNativeDriver: false,
-        }),
-      ]).start();
-    }
-  }, [isHovered]);
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.flowItem,
-        index === 0 && styles.firstFlowItem,
-        index === totalFlows - 1 && styles.lastFlowItem
-      ]}
-      onMouseEnter={onHover}
-      onMouseLeave={onLeave}
-      onPress={onPress}
-    >
-      <View style={styles.flowContent}>
-        <Text style={styles.flowTitle}>{flow.title}</Text>
-        <View style={styles.flowMeta}>
-          <View style={styles.stepInfo}>
-            <Text style={styles.stepText}>{flow.step}</Text>
-          </View>
-          <View style={styles.timeInfo}>
-            <Text style={styles.timeText}>{flow.time}</Text>
-          </View>
-        </View>
-      </View>
-      <View style={styles.arrowContainer}>
-        <Animated.View
-          style={[
-            styles.arrowWrapper,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateX: slideAnim }],
-            },
-          ]}
-        >
-          <ArrowRight size={24} color="#717680" />
-        </Animated.View>
-      </View>
-    </TouchableOpacity>
-  );
-};
-
-const getTimeBasedGreeting = (firstName?: string): string => {
-  const hour = new Date().getHours();
-  const name = firstName ? `, ${firstName}` : '';
-
-  if (hour >= 5 && hour < 12) {
-    return `Good morning${name} 🌅`;
-  } else if (hour >= 12 && hour < 17) {
-    return `Good afternoon${name} ☀️`;
-  } else if (hour >= 17 && hour < 21) {
-    return `Good evening${name} 🌝`;
-  } else {
-    return `Good night${name} 🌙`;
-  }
-};
 
 export default function HomeScreenContent({
   onFlowPress,
@@ -128,62 +34,11 @@ export default function HomeScreenContent({
   initialInputText,
   user
 }: HomeScreenContentProps) {
-  const [searchText, setSearchText] = useState('');
-  const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
   const [flows, setFlows] = useState<FlowWithProgress[]>([]);
-  const [greeting, setGreeting] = useState(getTimeBasedGreeting(user?.firstName));
-
-  // New flow input states
-  const [inputText, setInputText] = useState(initialInputText || '');
-  const [isLoading, setIsLoading] = useState(false);
-  const [progressMessage, setProgressMessage] = useState('');
-  const [error, setError] = useState('');
-  const inputRef = useRef<TextInput>(null);
-
-  // Weather states
-  const [weather, setWeather] = useState<{
-    temperature: number;
-    condition: string;
-    location: string;
-    loading: boolean;
-  }>({
-    temperature: 25,
-    condition: 'Partly cloudy',
-    location: 'Washington, DC',
-    loading: false,
-  });
 
   // Chat panel state
   const [isChatPanelVisible, setIsChatPanelVisible] = useState(false);
 
-  // Auto-focus the input when component mounts
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      inputRef.current?.focus();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Update input text when initialInputText changes
-  useEffect(() => {
-    if (initialInputText !== undefined) {
-      setInputText(initialInputText);
-    }
-  }, [initialInputText]);
-
-
-  // Update greeting every minute to catch time period changes
-  useEffect(() => {
-    const updateGreeting = () => {
-      setGreeting(getTimeBasedGreeting(user?.firstName));
-    };
-
-    // Update immediately and then every minute
-    updateGreeting();
-    const interval = setInterval(updateGreeting, 60000);
-
-    return () => clearInterval(interval);
-  }, [user?.firstName]);
 
   // Transform flows when rawFlows changes
   useEffect(() => {
@@ -225,27 +80,6 @@ export default function HomeScreenContent({
     loadFlowsWithProgress();
   }, [rawFlows]);
 
-  const handleSubmit = async () => {
-    if (!inputText.trim()) return;
-
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const flow = await databaseService.createFlowFromTask(
-        inputText.trim(),
-        (message: string) => setProgressMessage(message)
-      );
-
-      setInputText('');
-      onFlowCreated?.(flow.id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create flow');
-    } finally {
-      setIsLoading(false);
-      setProgressMessage('');
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -253,184 +87,15 @@ export default function HomeScreenContent({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>{greeting}</Text>
+
+        {/* Today's Path Section */}
+        <View style={styles.todaysPathSection}>
+          <TodaysPath
+            flows={rawFlows}
+            onStepPress={(flowId, stepId) => onFlowPress?.(flowId)}
+          />
         </View>
 
-        {/* New Flow Input */}
-        <View style={styles.inputContainer}>
-          <View style={styles.inputField}>
-            <View style={styles.inputRow}>
-              <TextInput
-                ref={inputRef}
-                style={styles.textInput}
-                placeholder="What's something you're struggling to start?"
-                placeholderTextColor="#A4A7AE"
-                value={inputText}
-                onChangeText={setInputText}
-                onKeyPress={(e) => {
-                  if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit();
-                  }
-                }}
-                multiline
-                editable={!isLoading}
-                selectionColor="transparent"
-              />
-            </View>
-            <View style={styles.actionButtons}>
-              <View style={styles.leftButtons}>
-                <TouchableOpacity style={styles.button}>
-                  <Plus size={18} color="#717680" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.rightButtons}>
-                <TouchableOpacity style={styles.button}>
-                  <Mic size={18} color="#717680" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, styles.primaryButton]}
-                  onPress={handleSubmit}
-                  disabled={!inputText.trim() || isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <ArrowRight size={18} color="white" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Loading and Progress Messages */}
-          {isLoading && progressMessage && (
-            <View style={styles.progressContainer}>
-              <ActivityIndicator size="small" color="#0A0D12" />
-              <Text style={styles.progressText}>{progressMessage}</Text>
-            </View>
-          )}
-
-          {/* Error Message */}
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Cards Section */}
-        <View style={styles.cardsSection}>
-          <View style={styles.cardsGrid}>
-            {/* 7 Day Streak Card */}
-            <ImageBackground
-              source={require('../../assets/plufow-le-studio-8LhVNaTYBfI-unsplash.jpg')}
-              style={styles.newCard}
-              imageStyle={styles.newCardImage}
-            >
-              <Image
-                source={require('../../assets/flame.png')}
-                style={styles.iconImage}
-                resizeMode="contain"
-              />
-              <Text style={styles.newCardLabel}>7 day streak</Text>
-            </ImageBackground>
-
-            {/* Plan My Day Card */}
-            <ImageBackground
-              source={require('../../assets/zaky-jundana-5lRygFO1JEE-unsplash.jpg')}
-              style={styles.newCard}
-              imageStyle={styles.newCardImage}
-            >
-              <Image
-                source={require('../../assets/calendar.png')}
-                style={styles.iconImage}
-                resizeMode="contain"
-              />
-              <Text style={styles.newCardLabel}>Plan my day</Text>
-            </ImageBackground>
-
-            {/* Pomodoro Card */}
-            <ImageBackground
-              source={require('../../assets/from-nio-fCk9k-vrcZM-unsplash.jpg')}
-              style={styles.newCard}
-              imageStyle={styles.newCardImage}
-            >
-              <Image
-                source={require('../../assets/clock-fading.png')}
-                style={styles.iconImage}
-                resizeMode="contain"
-              />
-              <Text style={styles.newCardLabel}>Pomodoro</Text>
-            </ImageBackground>
-
-            {/* Ask Glide Card */}
-            <TouchableOpacity onPress={() => setIsChatPanelVisible(true)}>
-              <ImageBackground
-                source={require('../../assets/zaky-jundana-6grFyaQVt24-unsplash.jpg')}
-                style={styles.newCard}
-                imageStyle={styles.newCardImage}
-              >
-                <Image
-                  source={require('../../assets/line-squiggle.png')}
-                  style={styles.iconImage}
-                  resizeMode="contain"
-                />
-                <Text style={styles.newCardLabel}>Ask Glide</Text>
-              </ImageBackground>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Recent Flows Section */}
-        <View style={styles.recentFlowsSection}>
-          <Text style={styles.recentFlowsHeading}>Recent flows</Text>
-          <View style={styles.recentFlowsContainer}>
-            <View style={styles.recentFlowsList}>
-              {flowsLoading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#0A0D12" />
-                  <Text style={styles.loadingText}>Loading your flows...</Text>
-                </View>
-              ) : flows.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No flows yet. Create your first flow above!</Text>
-                </View>
-              ) : (
-                flows.map((flow, index) => (
-                  <TouchableOpacity
-                    key={flow.id}
-                    style={[
-                      styles.recentFlowItem,
-                      index === flows.length - 1 && styles.lastRecentFlowItem
-                    ]}
-                    onPress={() => onFlowPress?.(flow.id)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#F0F0F0';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <View style={styles.recentFlowContent}>
-                      <Text style={styles.recentFlowTitle}>{flow.title}</Text>
-                      <View style={styles.recentFlowMeta}>
-                        <View style={styles.recentFlowMetaItem}>
-                          <Text style={styles.recentFlowMetaText}>{flow.step}</Text>
-                        </View>
-                        <View style={styles.recentFlowMetaItem}>
-                          <Text style={styles.recentFlowMetaText}>{flow.time}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))
-              )}
-            </View>
-          </View>
-        </View>
 
 {/* Flows List Section - Hidden */}
         {false && (
@@ -772,6 +437,13 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+  },
+  // Today's Path Section Styles
+  todaysPathSection: {
+    width: Math.min(680, screenWidth - 80),
+    alignSelf: 'center',
+    marginTop: 0,
+    marginBottom: 32,
   },
   // Recent Flows Section Styles
   recentFlowsSection: {
