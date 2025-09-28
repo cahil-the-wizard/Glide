@@ -31,9 +31,7 @@ export default function Sidebar({
   onToggleCollapse,
   animatedWidth
 }: SidebarProps) {
-  const [hoveredNavItem, setHoveredNavItem] = useState<string | null>(null);
   const [showUserPopover, setShowUserPopover] = useState(false);
-  const [logoHovered, setLogoHovered] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -58,11 +56,7 @@ export default function Sidebar({
               style={styles.logoContainer}
               onPress={onToggleCollapse}
             >
-              {logoHovered ? (
-                <PanelLeftOpen size={18} color="#717680" />
-              ) : (
-                <Logo width={32} color="black" />
-              )}
+              <Logo width={32} color="black" />
             </TouchableOpacity>
           ) : (
             <>
@@ -94,11 +88,8 @@ export default function Sidebar({
           <TouchableOpacity
             style={[
               collapsed ? styles.navItemCollapsed : styles.navItem,
-              hoveredNavItem === 'newFlow' && styles.navItemHover,
               currentScreen === 'newFlow' && styles.navItemActive
             ]}
-            onMouseEnter={() => setHoveredNavItem('newFlow')}
-            onMouseLeave={() => setHoveredNavItem(null)}
             onPress={onNewFlowPress}
           >
             <Plus size={18} color="#0A0D12" />
@@ -106,11 +97,8 @@ export default function Sidebar({
           </TouchableOpacity>
           <TouchableOpacity
             style={[
-              collapsed ? styles.navItemCollapsed : styles.navItem,
-              hoveredNavItem === 'search' && styles.navItemHover
+              collapsed ? styles.navItemCollapsed : styles.navItem
             ]}
-            onMouseEnter={() => setHoveredNavItem('search')}
-            onMouseLeave={() => setHoveredNavItem(null)}
             onPress={onSearchPress}
           >
             <Search size={18} color="#0A0D12" />
@@ -129,12 +117,7 @@ export default function Sidebar({
               {flows.map((flow) => (
                 <TouchableOpacity
                   key={flow.id}
-                  style={[
-                    styles.flowNavItem,
-                    hoveredNavItem === `flow-${flow.id}` && styles.navItemHover
-                  ]}
-                  onMouseEnter={() => setHoveredNavItem(`flow-${flow.id}`)}
-                  onMouseLeave={() => setHoveredNavItem(null)}
+                  style={styles.flowNavItem}
                   onPress={() => onFlowPress?.(flow.id)}
                 >
                   <Text style={styles.flowNavText}>{flow.title}</Text>

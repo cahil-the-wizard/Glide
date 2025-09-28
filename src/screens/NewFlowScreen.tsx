@@ -187,8 +187,6 @@ const styles = StyleSheet.create({
     minHeight: 22,
     paddingVertical: 0,
     paddingHorizontal: 0,
-    outlineWidth: 0,
-    outlineStyle: 'none',
   },
   actionButtons: {
     flexDirection: 'row',
