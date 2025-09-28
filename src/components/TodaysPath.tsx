@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Hourglass, CircleCheckBig } from 'lucide-react-native';
+import { Clock, CheckCircle } from 'lucide-react-native';
 import { Flow, Step } from '../types/database';
 import { databaseService } from '../services/database';
 
@@ -130,11 +130,11 @@ export default function TodaysPath({ flows, onStepPress }: TodaysPathProps) {
               <Text style={styles.stepTitle}>{nextStep.step.title}</Text>
               <View style={styles.stepMeta}>
                 <View style={styles.metaItem}>
-                  <Hourglass size={16} color="#535862" />
+                  <Clock size={16} color="#535862" />
                   <Text style={styles.metaText}>Complete in {nextStep.step.time_estimate}</Text>
                 </View>
                 <View style={styles.metaItem}>
-                  <CircleCheckBig size={16} color="#535862" />
+                  <CheckCircle size={16} color="#535862" />
                   <Text style={styles.metaText}>{nextStep.flowTitle}</Text>
                 </View>
               </View>
